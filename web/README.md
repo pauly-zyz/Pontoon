@@ -10,8 +10,10 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-- **Dummy data:** with `NEXT_PUBLIC_INDEXER_URL` empty (or no `.env.local`), every page renders from
-  `lib/mock-data.ts` and transactions are disabled.
+- **Pre-launch (default on Vercel):** with `NEXT_PUBLIC_INDEXER_URL` empty, the site targets Robinhood
+  Chain mainnet, shows real but empty data with a "launching soon" notice, and transactions stay
+  disabled until contract addresses are set.
+- **Sample data (local only):** add `NEXT_PUBLIC_DEMO_DATA=true` to render `lib/mock-data.ts` instead.
 - **Local chain:** run `../indexer/scripts/local-demo.sh` (writes `.env.local` here), start the indexer
   with `npm run dev` in `../indexer`, then `npm run dev` here. Import an anvil account into your wallet
   and add the network (chain ID 31337, RPC `http://127.0.0.1:8545`).

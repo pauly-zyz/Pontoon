@@ -47,11 +47,11 @@ export function Ticker() {
   const { data } = useActivity({ kinds: KINDS, limit: 24 });
   const tokens = useTokenMap();
   const items = (data ?? []).filter((a) => a.token);
-  if (items.length === 0) return <div className="h-10 border-y border-line/60" aria-hidden />;
+  if (items.length === 0) return null;
   const loop = [...items, ...items];
 
   return (
-    <div className="relative overflow-hidden border-y border-line/60 bg-surface/40 py-2.5" aria-label="Latest activity">
+    <div className="relative -mx-4 -mt-10 overflow-hidden border-y border-line/60 bg-surface/40 py-2.5 sm:-mx-6" aria-label="Latest activity">
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-bg to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-bg to-transparent" />
       <div className="animate-marquee flex w-max gap-10 text-sm whitespace-nowrap">

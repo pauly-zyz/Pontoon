@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "./Header";
 
 const COLS = [
-  { title: "Product", links: [["Launch", "/launch"], ["Memestock", "/memestocks"], ["Rewards", "/rewards"], ["Creator", "/creator"]] },
+  { title: "Product", links: [["Launch", "/launch"], ["Memestocks", "/memestocks"], ["Rewards", "/rewards"], ["Creator", "/creator"]] },
   { title: "Transparency", links: [["Treasury", "/treasury"], ["Community takeover", "/cto"], ["How it works", "/docs"]] },
 ];
 
