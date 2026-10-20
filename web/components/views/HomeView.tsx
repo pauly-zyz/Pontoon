@@ -4,14 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatEther } from "viem";
 import { useActivity, useStats, useTokens } from "@/lib/api";
-import { CONTRACTS_READY, PRE_LAUNCH } from "@/lib/config";
-import { formatUsd, useEthUsd } from "@/lib/price";
+import { CONTRACTS_READY, PRE_LAUNCH, SOCIAL } from "@/lib/config";
+import { formatUsd, usdText, useEthUsd } from "@/lib/price";
 import type { TokenTab } from "@/lib/types";
 import { CountUp } from "../CountUp";
 import { FeeFlow } from "../FeeFlow";
 import { Ticker } from "../Ticker";
 import { TokenCard } from "../TokenCard";
 import { TxFeed } from "../TxFeed";
+import { XIcon } from "../XIcon";
 import { Card, CardTitle, Empty, ErrorBox, Skeleton, Stat, Tabs } from "../ui";
 
 const TABS: { value: TokenTab; label: string }[] = [
@@ -98,6 +99,14 @@ function Hero() {
             >
               How it works
             </Link>
+            <a
+              href={SOCIAL.x.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-5 py-3 text-sm font-semibold backdrop-blur transition hover:border-accent/40"
+            >
+              <XIcon /> Follow on X
+            </a>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted">
             <li>✓ 24h timelock on fee changes</li>
@@ -151,7 +160,7 @@ export function HomeView() {
                 ethUsd ? (
                   <CountUp value={eth(s.volume24h) * ethUsd} format={formatUsd} />
                 ) : (
-                  <CountUp value={eth(s.volume24h)} format={fmtEth} />
+                  usdText(s.volume24h, undefined)
                 )
               ) : (
                 "…"

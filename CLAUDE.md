@@ -31,7 +31,10 @@ stakers. Full product spec: `spec.md`.
   merging is what puts the change live. Do not leave finished work only on a branch.
 - The owner communicates in Indonesian; reply in Indonesian. The website UI is English.
 - Web UI text must stay in English.
-- Market cap and volume are shown in USD (live ETH/USD price, ETH fallback); other amounts stay in ETH.
+- Market cap and volume are always shown in USD, never ETH (`web/lib/price.ts`: CoinGecko, then
+  Coinbase, then Binance, then the last cached price; zero is "$0"). Other amounts stay in ETH.
+- Official social: X https://x.com/PontoonFamily (`SOCIAL` in `web/lib/config.ts`), linked in the
+  header, hero, launch banner and footer.
 - Next.js 16 differs from older versions: read `web/node_modules/next/dist/docs/` before using
   unfamiliar APIs (see `web/AGENTS.md`). Wallet-dependent UI must use `useWallet()` from
   `web/lib/wallet.ts` to avoid hydration mismatches.

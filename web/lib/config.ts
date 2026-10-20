@@ -95,3 +95,8 @@ export function quoteFilterAddress(key: string): Address | undefined {
   if (key === "ETH") return zeroAddress;
   return USE_MOCK ? MOCK_QUOTES[key] : QUOTE_PAIRS.find((q) => q.key === key)?.address;
 }
+
+/** Official Pontoon social accounts. */
+export const SOCIAL = {
+  x: { url: "https://x.com/PontoonFamily", handle: "@PontoonFamily" },
+};

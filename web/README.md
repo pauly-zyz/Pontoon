@@ -40,9 +40,11 @@ Shared components from the spec: `TokenCard`, `CurveProgress`, `FeeSplitBar`, `T
 
 ## Notes
 
-- Market cap and volume are shown in USD using a live ETH/USD price fetched in the browser (CoinGecko,
-  with Coinbase as a backup, refreshed every minute). If both fail they fall back to ETH.
-  `NEXT_PUBLIC_ETH_USD_PRICE` pins a fixed price instead.
+- Market cap and volume are always shown in USD. The ETH/USD price is fetched in the browser
+  (CoinGecko, then Coinbase, then Binance, refreshed every minute) and the last price is cached in
+  the browser as a fallback. Zero amounts show "$0"; "$—" appears only before any price has ever
+  loaded. `NEXT_PUBLIC_ETH_USD_PRICE` pins a fixed price instead.
+- Social links (X @PontoonFamily) live in `SOCIAL` in `lib/config.ts`.
 - Token metadata (image URL, description, socials) is stored as a `data:` JSON URI in `metadataURI`,
   so launching needs no upload service. Image upload (IPFS or similar) is a follow-up.
 - Selling, the trade quote and curve progress use placeholder Pons V2 functions; selling stays disabled
