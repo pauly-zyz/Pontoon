@@ -25,6 +25,13 @@ interface IUniswapV4SwapAdapter is ISwapRoute {}
 
 /// @notice Pons V2 token factory.
 interface IPonsV2Factory {
+    /// @notice Emitted when a token's bonding curve completes and liquidity moves to Uniswap V4.
+    event Graduated(address indexed token);
+
+    /// @notice PLACEHOLDER trade event (curve or V4). Needed by the indexer for 24h volume and charts.
+    /// Swap for the real Pons V2 trade event(s) once the ABI is known.
+    event Trade(address indexed token, address indexed trader, bool isBuy, uint256 ethAmount, uint256 tokenAmount);
+
     struct CreateParams {
         string name;
         string symbol;

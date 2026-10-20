@@ -30,6 +30,12 @@ contract MockPonsFactory is IPonsV2Factory {
 
     function setGraduated(address token, bool g) external {
         isGraduated[token] = g;
+        if (g) emit Graduated(token);
+    }
+
+    /// @dev Emits a Trade like Pons V2 would; used by the local demo to feed the indexer.
+    function recordTrade(address token, address trader, bool isBuy, uint256 ethAmount, uint256 tokenAmount) external {
+        emit Trade(token, trader, isBuy, ethAmount, tokenAmount);
     }
 
     /// @dev Simulates Pons V2 sending the creator share of trading fees.

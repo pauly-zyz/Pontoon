@@ -13,7 +13,8 @@ Foundry project for the seven Pontoon contracts described in `../spec.md` (secti
 | CTOManager | platform | `src/CTOManager.sol` |
 
 `src/interfaces/IPonsV2.sol` is a **placeholder** for the Pons V2 factory, curve router and the
-Uniswap V4 adapter. Replace it with the real ABI in stage 4.
+Uniswap V4 adapter, including the `Graduated` and (placeholder) `Trade` events the indexer reads.
+Replace it with the real ABI in stage 4.
 
 ## Commands
 
@@ -22,6 +23,9 @@ git submodule update --init --recursive
 forge build
 forge test
 ```
+
+Local demo for the indexer (anvil + mock Pons V2, every indexed event): see `../indexer/scripts/local-demo.sh`
+and `script/LocalDemo.s.sol`.
 
 Deploy (env: `MULTISIG`, `PONS_FACTORY`, `PONS_ROUTER`, `V4_ADAPTER`):
 
