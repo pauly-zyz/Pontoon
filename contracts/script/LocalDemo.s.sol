@@ -42,6 +42,7 @@ contract LocalDemo is Script {
     address tokenB;
     address vaultA;
     address vaultB;
+    mapping(string => address) quotes;
 
     function _keys() internal {
         deployerPk = vm.deriveKey(MNEMONIC, 0);
@@ -62,7 +63,10 @@ contract LocalDemo is Script {
         pons = new MockPonsFactory();
         curve = new MockRouter();
         v4 = new MockRouter();
-        MockToken usdg = new MockToken("USD Global", "USDG");
+        quotes["USDG"] = address(new MockToken("USD Global", "USDG"));
+        quotes["NVDA"] = address(new MockToken("NVIDIA tokenized", "NVDA"));
+        quotes["AAPL"] = address(new MockToken("Apple tokenized", "AAPL"));
+        quotes["HOOD"] = address(new MockToken("Robinhood tokenized", "HOOD"));
         registry = new TokenRegistry(vm.addr(deployerPk), pons);
         treasury = new PlatformTreasury(multisig);
         executor = new BuybackExecutor(multisig, registry, pons, curve, v4);
@@ -81,18 +85,30 @@ contract LocalDemo is Script {
         registry.transferOwnership(multisig);
         vm.stopBroadcast();
 
-        vm.broadcast(multisigPk);
-        launcher.setQuotePair(address(usdg), true);
+        vm.startBroadcast(multisigPk);
+        launcher.setQuotePair(quotes["USDG"], true);
+        launcher.setQuotePair(quotes["NVDA"], true);
+        launcher.setQuotePair(quotes["AAPL"], true);
+        launcher.setQuotePair(quotes["HOOD"], true);
+        vm.stopBroadcast();
 
         // ---- Launch two tokens ----
         vm.broadcast(creatorAPk);
         (tokenA, vaultA) = launcher.launchWithDefaultConfig{value: 0.1 ether}(
-            PontoonLauncher.TokenMeta("Pontoon Alpha", "PALPHA", "ipfs://alpha"), address(0), false
+            PontoonLauncher.TokenMeta(
+                "Pontoon Alpha",
+                "PALPHA",
+                _metadata("The first raft on Robinhood Chain. Buyback, burn, repeat.", "pontoonalpha")
+            ),
+            address(0),
+            false
         );
         vm.broadcast(creatorBPk);
         (tokenB, vaultB) = launcher.launch(
-            PontoonLauncher.TokenMeta("Nvidia Meme", "NVMEME", "ipfs://nvmeme"),
-            address(usdg),
+            PontoonLauncher.TokenMeta(
+                "Nvidia Meme", "NVMEME", _metadata("GPUs go brrr. Paired with tokenized NVDA.", "nvmeme")
+            ),
+            quotes["NVDA"],
             true,
             FeeConfig({buybackBps: 6_000, rewardBps: 3_000})
         );
@@ -140,6 +156,26 @@ contract LocalDemo is Script {
         vm.broadcast(keeperPk);
         executor.buybackAndBurn(tokenB, 0.2 ether, 1);
 
+        // ---- More tokens for the home page tabs ----
+        _extraToken(
+            creatorAPk,
+            "Robin Hood Coin",
+            "ROBIN",
+            "Steal from the bears, give to the holders.",
+            "HOOD",
+            true,
+            8_200,
+            1.4 ether
+        );
+        _extraToken(creatorBPk, "Apple Pie", "APIE", "One slice of AAPL in every bite.", "AAPL", true, 3_100, 0.6 ether);
+        _extraToken(stakerPk, "Pontoon Dog", "PDOG", "Good boy, floats on every chain.", "", false, 9_100, 2.2 ether);
+        _extraToken(
+            ctoPk, "Moon Raft", "MRAFT", "Paddling toward the moon, one block at a time.", "", false, 1_200, 0.3 ether
+        );
+        _extraToken(keeperPk, "Stable Sail", "SAIL", "Calm waters, priced in USDG.", "USDG", false, 4_700, 0.9 ether);
+        vm.broadcast(deployerPk);
+        pons.setCurveProgress(tokenA, 6_400);
+
         // ---- Timelocked actions (finished in phase2) ----
         vm.broadcast(creatorAPk);
         FeeVault(payable(vaultA)).queueConfig(FeeConfig({buybackBps: 5_000, rewardBps: 1_000}));
@@ -157,11 +193,56 @@ contract LocalDemo is Script {
         vm.serializeAddress(o, "BuybackExecutor", address(executor));
         vm.serializeAddress(o, "PlatformTreasury", address(treasury));
         vm.serializeAddress(o, "CTOManager", address(cto));
+        vm.serializeAddress(o, "PonsRouter", address(curve));
+        vm.serializeAddress(o, "V4Adapter", address(v4));
+        vm.serializeAddress(o, "USDG", quotes["USDG"]);
+        vm.serializeAddress(o, "NVDA", quotes["NVDA"]);
+        vm.serializeAddress(o, "AAPL", quotes["AAPL"]);
+        vm.serializeAddress(o, "HOOD", quotes["HOOD"]);
         vm.serializeAddress(o, "tokenA", tokenA);
         string memory json = vm.serializeAddress(o, "tokenB", tokenB);
         vm.createDir("./deployments", true);
         vm.writeJson(json, OUT);
         console2.log("written", OUT);
+    }
+
+    function _metadata(string memory description, string memory handle) internal pure returns (string memory) {
+        string memory json = string.concat(
+            '{"description":"',
+            description,
+            '","image":"","twitter":"https://x.com/',
+            handle,
+            '","telegram":"https://t.me/',
+            handle,
+            '","website":""}'
+        );
+        return string.concat("data:application/json;base64,", vm.toBase64(json));
+    }
+
+    function _extraToken(
+        uint256 pk,
+        string memory name,
+        string memory symbol,
+        string memory description,
+        string memory quoteKey,
+        bool memestock,
+        uint256 progressBps,
+        uint256 volume
+    ) internal {
+        address quote = bytes(quoteKey).length == 0 ? address(0) : quotes[quoteKey];
+        vm.broadcast(pk);
+        (address t, address v) = launcher.launchWithDefaultConfig(
+            PontoonLauncher.TokenMeta(name, symbol, _metadata(description, symbol)), quote, memestock
+        );
+        vm.startBroadcast(deployerPk);
+        pons.setCurveProgress(t, progressBps);
+        pons.recordTrade(t, vm.addr(keeperPk), true, volume, volume * 1_000);
+        pons.recordTrade(t, vm.addr(stakerPk), false, volume / 4, volume * 240);
+        pons.payCreatorFee{value: volume / 100}(t);
+        curve.setLiquidity(t, volume * 20);
+        vm.stopBroadcast();
+        vm.broadcast(keeperPk);
+        FeeVault(payable(v)).distribute();
     }
 
     /// @notice Run after advancing anvil time by > 3 days.

@@ -13,6 +13,9 @@ interface ISwapRoute {
         payable
         returns (uint256 amountOut);
 
+    /// @notice Expected output for `ethIn`, for UI quotes and slippage limits (manipulable; never use on-chain).
+    function quoteExactETHForTokens(address token, address quoteAsset, uint256 ethIn) external view returns (uint256);
+
     /// @notice ETH-denominated liquidity backing `token`, used to cap buyback size.
     function ethLiquidity(address token, address quoteAsset) external view returns (uint256);
 }
@@ -44,4 +47,7 @@ interface IPonsV2Factory {
     function createToken(CreateParams calldata params) external payable returns (address token);
 
     function isGraduated(address token) external view returns (bool);
+
+    /// @notice PLACEHOLDER: bonding-curve progress toward graduation, in basis points (10_000 = graduated).
+    function curveProgressBps(address token) external view returns (uint256);
 }

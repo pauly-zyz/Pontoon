@@ -38,6 +38,8 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     event TokenLaunched(
         address indexed token, address indexed creator, address quotePair, bool isMemestock, address vault
     );
+    /// @notice Name, ticker and off-chain metadata (image, description, socials) for the indexer.
+    event TokenMetadata(address indexed token, string name, string symbol, string metadataURI);
     event PlatformFeeSet(uint16 bps);
     event QuotePairSet(address indexed quoteAsset, bool allowed);
     event Paused(bool paused);
@@ -137,6 +139,7 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         IFeeVault(vault).initialize(token, msg.sender, rewards, buybackExecutor, treasury, ctoManager, feeConfig);
         registry.register(token, msg.sender, quotePair, isMemestock, vault, rewards);
 
+        emit TokenMetadata(token, meta.name, meta.symbol, meta.metadataURI);
         emit TokenLaunched(token, msg.sender, quotePair, isMemestock, vault);
     }
 }

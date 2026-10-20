@@ -19,6 +19,7 @@ contract MockPonsFactory is IPonsV2Factory {
     mapping(address => address) public feeRecipientOf;
     mapping(address => address) public quoteAssetOf;
     mapping(address => bool) public isGraduated;
+    mapping(address => uint256) public curveProgressBps;
 
     function createToken(CreateParams calldata p) external payable returns (address token) {
         MockToken t = new MockToken(p.name, p.symbol);
@@ -30,7 +31,14 @@ contract MockPonsFactory is IPonsV2Factory {
 
     function setGraduated(address token, bool g) external {
         isGraduated[token] = g;
-        if (g) emit Graduated(token);
+        if (g) {
+            curveProgressBps[token] = 10_000;
+            emit Graduated(token);
+        }
+    }
+
+    function setCurveProgress(address token, uint256 bps) external {
+        curveProgressBps[token] = bps;
     }
 
     /// @dev Emits a Trade like Pons V2 would; used by the local demo to feed the indexer.
@@ -70,6 +78,10 @@ contract MockRouter is ISwapRoute {
         calls++;
         lastQuote = quoteAsset;
         MockToken(token).mint(recipient, out);
+    }
+
+    function quoteExactETHForTokens(address, address, uint256 ethIn) external view returns (uint256) {
+        return ethIn * rate / 1e18;
     }
 
     function ethLiquidity(address token, address) external view returns (uint256) {

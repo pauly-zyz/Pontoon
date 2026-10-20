@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {BaseTest} from "./Base.t.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {PontoonLauncher} from "../src/PontoonLauncher.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {BuybackExecutor} from "../src/BuybackExecutor.sol";
@@ -202,5 +203,29 @@ contract TreasuryTest is BaseTest {
         vm.prank(alice);
         vm.expectRevert();
         treasury.queueWithdraw(alice, 1);
+    }
+}
+
+contract LauncherMetadataTest is BaseTest {
+    event TokenMetadata(address indexed token, string name, string symbol, string metadataURI);
+
+    function test_launch_emitsMetadata() public {
+        vm.recordLogs();
+        vm.prank(alice);
+        (address t,) = launcher.launch(_meta(), address(0), false, FeeConfig(0, 0));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bool found;
+        for (uint256 i; i < logs.length; i++) {
+            if (logs[i].topics[0] == TokenMetadata.selector) {
+                assertEq(address(uint160(uint256(logs[i].topics[1]))), t);
+                (string memory n, string memory s, string memory uri) =
+                    abi.decode(logs[i].data, (string, string, string));
+                assertEq(n, "Pontoon Test");
+                assertEq(s, "PTT");
+                assertEq(uri, "ipfs://meta");
+                found = true;
+            }
+        }
+        assertTrue(found);
     }
 }

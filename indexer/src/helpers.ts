@@ -57,6 +57,10 @@ export function newToken(fields: {
   const { event, ...rest } = fields;
   return {
     ...rest,
+    name: "",
+    symbol: "",
+    metadataURI: "",
+    curveProgressBps: 0,
     admin: rest.creator,
     launchedAt: ts(event),
     launchBlock: event.block.number,
@@ -85,6 +89,8 @@ export function newToken(fields: {
     volumeEth: 0n,
     tradeCount: 0,
     lastTradeAt: null,
+    lastPriceWei: 0n,
+    marketCapEth: 0n,
     activeCtoRequestId: null,
   };
 }

@@ -29,7 +29,7 @@ ABIs in `abis/` are generated from the Foundry build: `npm run abis` after `forg
 
 | Source | Events |
 | --- | --- |
-| PontoonLauncher | `TokenLaunched` |
+| PontoonLauncher | `TokenLaunched`, `TokenMetadata` |
 | TokenRegistry | `TokenRegistered`, `Graduated`, `MemestockTagSet` |
 | FeeVault (per token, via factory) | `FeeReceived`, `FeeDistributed`, `CallerIncentivePaid`, `CreatorClaimed`, `ConfigQueued`, `ConfigApplied`, `ConfigCancelled`, `AdminChanged` |
 | BuybackExecutor | `BuybackExecuted` |
@@ -48,7 +48,7 @@ All amounts are wei as decimal strings; timestamps are unix seconds; addresses a
 | Route | Page | Returns |
 | --- | --- | --- |
 | `GET /api/stats` | Home | 24h volume and trades, tokens launched (total / 24h), graduated, memestocks, total buyback ETH, fees distributed |
-| `GET /api/tokens?tab=trending\|new\|graduated\|memestock&quote=0x…&limit=&offset=` | Home, Memestock | Token list with `volume24h` |
+| `GET /api/tokens?tab=trending\|new\|graduating\|graduated\|memestock&quote=0x…&limit=&offset=` | Home, Memestock | Token list with `volume24h` |
 | `GET /api/tokens/:address` | Token detail | Token row, active + pending config and history, 24h volume, distributions, buybacks, top stakers, recent trades, CTO status |
 | `GET /api/tokens/:address/trades?before=&limit=` | Token detail (chart) | Trades, newest first |
 | `GET /api/treasury` | Treasury | Fee totals and split, buyback spent/pending, rewards funded/claimed, PlatformTreasury balance and withdrawals, feed |
@@ -60,7 +60,9 @@ All amounts are wei as decimal strings; timestamps are unix seconds; addresses a
 
 ## Known gaps (Pons V2 placeholder)
 
-- `Trade` is a placeholder event. 24h volume, trending and the price chart depend on it; swap in the
-  real Pons V2 trade event(s) in stage 4.
-- The "Hampir Lulus" tab needs bonding-curve progress, which the placeholder ABI does not expose.
+- `Trade` is a placeholder event. 24h volume, trending, the price chart, last price and market cap
+  (`lastPriceWei` × `totalSupply`, read on each trade) depend on it; swap in the real Pons V2 trade
+  event(s) in stage 4.
+- Curve progress (`curveProgressBps`, used by the "Hampir Lulus" tab) comes from a placeholder Pons V2 view,
+  refreshed on each trade.
 - 24h windows use the server clock.

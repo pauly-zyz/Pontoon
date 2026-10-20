@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #070c16;
+  --color-surface: #0d1524;
+  --color-surface-2: #121d31;
+  --color-line: #1e2b42;
+  --color-ink: #e7edf7;
+  --color-muted: #8797b1;
+  --color-accent: #2dd4bf;
+  --color-accent-ink: #04211d;
+  --color-danger: #f87171;
+  --color-warn: #fbbf24;
+
+  /* Fee split colors, used everywhere the split is shown */
+  --color-split-platform: #64748b;
+  --color-split-creator: #a78bfa;
+  --color-split-buyback: #f59e0b;
+  --color-split-rewards: #2dd4bf;
+  --color-split-incentive: #38bdf8;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-display), var(--font-geist-sans), sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgb(45 212 191 / 0.08), transparent 60%),
+    radial-gradient(900px 400px at 100% 0%, rgb(167 139 250 / 0.06), transparent 60%);
+  background-color: var(--color-bg);
+  background-repeat: no-repeat;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  accent-color: var(--color-accent);
+}

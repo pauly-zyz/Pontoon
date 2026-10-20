@@ -53,6 +53,25 @@ export const PonsV2FactoryAbi = [
   },
   {
     "type": "function",
+    "name": "curveProgressBps",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isGraduated",
     "inputs": [
       {

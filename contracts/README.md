@@ -13,7 +13,8 @@ Foundry project for the seven Pontoon contracts described in `../spec.md` (secti
 | CTOManager | platform | `src/CTOManager.sol` |
 
 `src/interfaces/IPonsV2.sol` is a **placeholder** for the Pons V2 factory, curve router and the
-Uniswap V4 adapter, including the `Graduated` and (placeholder) `Trade` events the indexer reads.
+Uniswap V4 adapter, including the `Graduated` and (placeholder) `Trade` events the indexer reads and
+the placeholder views `curveProgressBps` and `quoteExactETHForTokens` used by the indexer and web app.
 Replace it with the real ABI in stage 4.
 
 ## Commands

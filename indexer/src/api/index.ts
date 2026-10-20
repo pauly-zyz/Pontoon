@@ -91,17 +91,17 @@ app.get("/api/stats", async (c) => {
 
 /**
  * Token lists for the home and memestock pages.
- *   ?tab=trending (24h volume) | new | graduated | memestock
+ *   ?tab=trending (24h volume) | new | graduating (closest to graduation) | graduated | memestock
  *   ?quote=0x… (quote asset; 0x0000000000000000000000000000000000000000 = ETH)
  *   ?limit=&offset=
- * "Hampir lulus" needs curve progress from Pons V2, which the placeholder ABI does not expose yet.
  */
 app.get("/api/tokens", async (c) => {
   const tab = c.req.query("tab") ?? "trending";
-  if (!["trending", "new", "graduated", "memestock"].includes(tab)) return json(c, { error: "invalid tab" }, 400);
+  if (!["trending", "new", "graduating", "graduated", "memestock"].includes(tab)) return json(c, { error: "invalid tab" }, 400);
 
   const filters = [];
   if (tab === "graduated") filters.push(eq(token.graduated, true));
+  if (tab === "graduating") filters.push(eq(token.graduated, false));
   if (tab === "memestock") filters.push(eq(token.isMemestock, true));
   const quoteRaw = c.req.query("quote");
   if (quoteRaw !== undefined) {
@@ -117,7 +117,9 @@ app.get("/api/tokens", async (c) => {
       ? [desc(volume24h), desc(token.launchedAt)]
       : tab === "graduated"
         ? [desc(token.graduatedAt)]
-        : [desc(token.launchedAt)];
+        : tab === "graduating"
+          ? [desc(token.curveProgressBps), desc(volume24h)]
+          : [desc(token.launchedAt)];
 
   const rows = await db
     .select({ token, volume24h })

@@ -7,6 +7,9 @@ export const token = onchainTable(
   "token",
   (t) => ({
     address: t.hex().primaryKey(),
+    name: t.text().notNull(),
+    symbol: t.text().notNull(),
+    metadataURI: t.text().notNull(), // JSON (often a data: URI) with image, description, socials
     creator: t.hex().notNull(),
     admin: t.hex().notNull(),
     quoteAsset: t.hex().notNull(), // 0x000…0 = ETH
@@ -18,6 +21,8 @@ export const token = onchainTable(
     launchTx: t.hex().notNull(),
     graduated: t.boolean().notNull(),
     graduatedAt: t.integer(),
+    // PLACEHOLDER: read from Pons V2 curveProgressBps() on every trade (10_000 = graduated)
+    curveProgressBps: t.integer().notNull(),
 
     // Active and queued fee config (basis points of the post-platform remainder)
     buybackBps: t.integer().notNull(),
@@ -50,6 +55,8 @@ export const token = onchainTable(
     volumeEth: t.bigint().notNull(),
     tradeCount: t.integer().notNull(),
     lastTradeAt: t.integer(),
+    lastPriceWei: t.bigint().notNull(), // ETH (wei) per 1 whole token, from the last trade
+    marketCapEth: t.bigint().notNull(), // lastPriceWei * totalSupply / 1e18
 
     activeCtoRequestId: t.text(),
   }),
