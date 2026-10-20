@@ -19,9 +19,9 @@ export function RewardsView() {
     <div>
       <PageTitle
         title="Rewards"
-        subtitle="Stake token Pontoon untuk menerima bagian ETH dari fee trading. Reward dihitung on-chain dengan pola reward-per-share dan bisa diklaim kapan saja."
+        subtitle="Stake Pontoon tokens to earn a share of trading fees in ETH. Rewards are computed on-chain with a reward-per-share model and can be claimed at any time."
       />
-      <WalletGate reason="Hubungkan dompet untuk melihat posisi staking dan ETH yang bisa diklaim.">
+      <WalletGate reason="Connect your wallet to see your staking positions and claimable ETH.">
         {(user) => <Positions user={user} />}
       </WalletGate>
     </div>
@@ -64,19 +64,19 @@ function Positions({ user }: { user: Address }) {
   return (
     <div className="space-y-6">
       <section className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Bisa diklaim" value={CONTRACTS_READY ? `${formatEth(total, 5)} ETH` : "—"} />
-        <Stat label="Sudah diklaim" value={`${formatEth(claimedTotal, 4)} ETH`} />
-        <Stat label="Posisi aktif" value={positions.filter((p) => BigInt(p.staked) > 0n).length} />
+        <Stat label="Claimable" value={CONTRACTS_READY ? `${formatEth(total, 5)} ETH` : "—"} />
+        <Stat label="Claimed so far" value={`${formatEth(claimedTotal, 4)} ETH`} />
+        <Stat label="Active positions" value={positions.filter((p) => BigInt(p.staked) > 0n).length} />
       </section>
       <div className="flex flex-wrap items-center justify-end gap-3">
         <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
         <Button disabled={!CONTRACTS_READY || !tx.ready || total === 0n || tx.busy} onClick={claimAll}>
-          Klaim semua ({formatEth(total, 5)} ETH)
+          Claim all ({formatEth(total, 5)} ETH)
         </Button>
       </div>
       {positions.length === 0 ? (
         <Empty>
-          Belum ada posisi staking. Buka halaman token mana pun dan stake di panel <em>Staking reward</em>.
+          No staking positions yet. Open any token page and stake in the <em>Staking rewards</em> panel.
         </Empty>
       ) : (
         <div className="space-y-3">
@@ -108,15 +108,15 @@ function PositionRow({ position: p, symbol, name, claimable }: { position: Stake
       </div>
       <dl className="tabular grid flex-[2] grid-cols-3 gap-4 text-sm">
         <div>
-          <dt className="text-xs text-muted">Di-stake</dt>
+          <dt className="text-xs text-muted">Staked</dt>
           <dd className="font-semibold">{formatTokens(p.staked)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">Bisa diklaim</dt>
+          <dt className="text-xs text-muted">Claimable</dt>
           <dd className="font-semibold text-accent">{claimable !== undefined && CONTRACTS_READY ? `${formatEth(claimable, 5)} ETH` : "—"}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">Sudah diklaim</dt>
+          <dt className="text-xs text-muted">Claimed</dt>
           <dd>{formatEth(p.claimed)} ETH</dd>
         </div>
       </dl>
@@ -126,7 +126,7 @@ function PositionRow({ position: p, symbol, name, claimable }: { position: Stake
           disabled={!CONTRACTS_READY || !tx.ready || !claimable || tx.busy || !p.holderRewards}
           onClick={() => tx.send((write) => write({ address: p.holderRewards!, abi: HolderRewardsAbi, functionName: "claim" }))}
         >
-          Klaim
+          Claim
         </Button>
         <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
       </div>

@@ -14,10 +14,10 @@ export function CurveProgress({ bps, graduated, compact }: { bps: number; gradua
   return (
     <div className="w-full">
       <div className="mb-1 flex justify-between text-[11px] text-muted">
-        <span>{compact ? "Curve" : "Progres bonding curve"}</span>
+        <span>{compact ? "Curve" : "Bonding curve progress"}</span>
         <span className={near ? "font-semibold text-warn" : ""}>
           {pct(value, 1)}
-          {near && !compact ? " · hampir lulus" : ""}
+          {near && !compact ? " · almost graduated" : ""}
         </span>
       </div>
       <div

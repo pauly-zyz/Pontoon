@@ -6,25 +6,25 @@ import { contracts, PARAMS } from "@/lib/config";
 export const metadata: Metadata = { title: "Docs" };
 
 const PARAM_ROWS: [string, string, string][] = [
-  ["Fee platform", "20% dari fee yang masuk (maks. 30%)", "Pendapatan Pontoon, diubah multisig dalam batas maks."],
-  ["Insentif pemanggil distribute()", "0,5%, maks. 0,005 ETH", "Menutup gas tanpa menguras fee"],
-  ["Buyback-and-burn", "0–80% dari sisa", "Tidak bisa 100%, creator tetap punya insentif"],
-  ["Reward holder", "0–50% dari sisa", "Mencegah janji reward berlebihan"],
-  ["Payout creator", "Sisa setelah dua di atas", "Otomatis"],
-  ["Default", "40% buyback, 20% reward, 40% creator", "Aman untuk pemula"],
-  ["Timelock perubahan konfigurasi", "24 jam", "Holder sempat melihat perubahan"],
-  ["Batas buyback per eksekusi", "min(0,5 ETH, 1% likuiditas pool)", "Mengurangi dampak harga dan sandwich"],
-  ["Timelock CTO", "3 hari + persetujuan multisig", "Mengikuti alur Pons V2"],
-  ["Timelock penarikan treasury", "48 jam", "Penarikan dana platform terlihat lebih dulu"],
+  ["Platform fee", "20% of incoming fees (max 30%)", "Pontoon revenue; the multisig can change it within the cap"],
+  ["distribute() caller incentive", "0.5%, max 0.005 ETH", "Covers gas without draining fees"],
+  ["Buyback-and-burn", "0–80% of the remainder", "Never 100%, so the creator keeps an incentive"],
+  ["Holder rewards", "0–50% of the remainder", "Prevents overpromising rewards"],
+  ["Creator payout", "Whatever is left", "Automatic"],
+  ["Default", "40% buyback, 20% rewards, 40% creator", "A safe starting point"],
+  ["Config change timelock", "24 hours", "Holders can see changes before they apply"],
+  ["Buyback cap per execution", "min(0.5 ETH, 1% of pool liquidity)", "Limits price impact and sandwich risk"],
+  ["CTO timelock", "3 days + multisig approval", "Follows the Pons V2 flow"],
+  ["Treasury withdrawal timelock", "48 hours", "Platform withdrawals are visible in advance"],
 ];
 
 const RISKS = [
-  "Contract belum diaudit. Gunakan dana seperlunya selama masa uji coba.",
-  "Integrasi Pons V2 masih memakai interface placeholder sampai ABI resmi tersedia.",
-  "Buyback bisa terkena slippage atau sandwich. minOut wajib dan jumlah per eksekusi dibatasi, tetapi risikonya tidak hilang.",
-  "Reward hanya untuk staker. Token yang tidak di-stake (termasuk di pool likuiditas) tidak menerima ETH.",
-  "Pasangan saham ter-tokenisasi bergantung pada likuiditas ETH ke NVDA/AAPL/HOOD/USDG dan aturan hukum di wilayah Anda.",
-  "Pause darurat hanya menghentikan launch dan buyback baru; klaim tidak pernah dikunci.",
+  "The contracts have not been audited yet. Only use what you can afford to lose during testing.",
+  "The Pons V2 integration uses placeholder interfaces until the official ABI is available.",
+  "Buybacks can suffer slippage or sandwiching. minOut is mandatory and each execution is capped, but the risk does not go away.",
+  "Rewards only go to stakers. Unstaked tokens (including those in liquidity pools) earn no ETH.",
+  "Tokenized-stock pairs depend on ETH liquidity into NVDA/AAPL/HOOD/USDG and on the rules in your jurisdiction.",
+  "An emergency pause only stops new launches and buybacks; claims are never locked.",
 ];
 
 export default function DocsPage() {
@@ -42,29 +42,29 @@ export default function DocsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageTitle
-        title="Cara kerja Pontoon"
-        subtitle="Pontoon adalah lapisan di atas Pons V2: token diluncurkan di Pons, tetapi fee creator diarahkan ke contract Pontoon yang membaginya sesuai pengaturan creator."
+        title="How Pontoon works"
+        subtitle="Pontoon is a layer on top of Pons V2: tokens launch on Pons, but creator fees are routed to Pontoon contracts that split them according to the creator's settings."
       />
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Alur fee</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Fee flow</h2>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-muted">
-          <li>Trader membeli atau menjual di Pons V2 (bonding curve sebelum lulus, Uniswap V4 setelah lulus).</li>
-          <li>Pons V2 mengirim fee creator dalam ETH ke FeeVault token itu, bukan ke dompet creator.</li>
-          <li>Siapa pun memanggil distribute() dan mendapat insentif kecil.</li>
-          <li>FeeVault memotong fee platform ke PlatformTreasury.</li>
-          <li>Sisanya dibagi ke payout creator, buyback-and-burn, dan reward holder.</li>
-          <li>BuybackExecutor membeli token di pasar lalu mengirimnya ke 0x…dEaD.</li>
-          <li>HolderRewards membagikan ETH ke staker dengan pola reward-per-share.</li>
+          <li>Traders buy or sell on Pons V2 (the bonding curve before graduation, Uniswap V4 after).</li>
+          <li>Pons V2 sends the creator fee in ETH to that token&apos;s FeeVault, not to the creator&apos;s wallet.</li>
+          <li>Anyone can call distribute() and earn a small incentive.</li>
+          <li>The FeeVault takes the platform fee and sends it to the PlatformTreasury.</li>
+          <li>The rest is split between the creator payout, buyback-and-burn, and holder rewards.</li>
+          <li>The BuybackExecutor buys the token on the market and sends it to 0x…dEaD.</li>
+          <li>HolderRewards distributes ETH to stakers using a reward-per-share model.</li>
         </ol>
         <div className="mt-6">
-          <div className="mb-2 text-xs font-medium tracking-wider text-muted uppercase">Pembagian default dari total fee</div>
+          <div className="mb-2 text-xs font-medium tracking-wider text-muted uppercase">Default split of total fees</div>
           <FeeSplitBar parts={splitFromConfig(PARAMS.defaultBuybackBps, PARAMS.defaultRewardBps, PARAMS.defaultPlatformFeeBps)} />
         </div>
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Parameter</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Parameters</h2>
         <div className="-mx-5 overflow-x-auto px-5">
           <table className="w-full min-w-[520px] text-sm">
             <tbody className="divide-y divide-line">
@@ -81,45 +81,45 @@ export default function DocsPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Quote pair & buyback</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Quote pairs & buybacks</h2>
         <p className="text-sm text-muted">
-          Creator memilih ETH, USDG, atau saham ter-tokenisasi (NVDA, AAPL, HOOD). Untuk pasangan ETH, buyback swap ETH langsung ke token.
-          Untuk pasangan lain, ETH ditukar ke quote asset dulu, lalu ke token. Sebelum lulus, buyback lewat router bonding curve Pons V2;
-          setelah lulus, lewat pool Uniswap V4.
+          Creators pick ETH, USDG, or a tokenized stock (NVDA, AAPL, HOOD). For ETH pairs, buybacks swap ETH straight into the
+          token. For other pairs, ETH is swapped into the quote asset first, then into the token. Before graduation, buybacks go
+          through the Pons V2 bonding-curve router; after graduation, through the Uniswap V4 pool.
         </p>
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Hak akses</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Permissions</h2>
         <ul className="space-y-2 text-sm text-muted">
           <li>
-            <span className="font-medium text-ink">Creator:</span> mengantrekan perubahan konfigurasi dan klaim payout. Tidak bisa menarik
-            dana buyback atau reward.
+            <span className="font-medium text-ink">Creator:</span> queues config changes and claims payouts. Cannot withdraw
+            buyback or reward funds.
           </li>
           <li>
-            <span className="font-medium text-ink">Siapa pun:</span> memanggil distribute() dan buyback, stake, dan klaim.
+            <span className="font-medium text-ink">Anyone:</span> calls distribute() and buybacks, stakes, and claims.
           </li>
           <li>
-            <span className="font-medium text-ink">Multisig Pontoon:</span> mengubah fee platform dalam batas, menyetujui CTO, pause darurat.
-            Tidak bisa menyentuh dana di FeeVault atau HolderRewards.
+            <span className="font-medium text-ink">Pontoon multisig:</span> changes the platform fee within its cap, approves
+            CTOs, and can trigger an emergency pause. Cannot touch funds in a FeeVault or HolderRewards.
           </li>
         </ul>
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Alamat contract</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Contract addresses</h2>
         <ul className="space-y-1.5 text-sm">
           {addresses.map(([name, a]) => (
             <li key={name} className="flex flex-wrap justify-between gap-2">
               <span className="text-muted">{name}</span>
-              <span className="font-mono text-xs break-all">{a ?? "belum diset"}</span>
+              <span className="font-mono text-xs break-all">{a ?? "not set"}</span>
             </li>
           ))}
         </ul>
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-xl font-semibold">Risiko</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Risks</h2>
         <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted">
           {RISKS.map((r) => (
             <li key={r}>{r}</li>

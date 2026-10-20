@@ -8,9 +8,9 @@ import { ConnectButton } from "./ConnectButton";
 import { cn } from "./ui";
 
 const NAV = [
-  { href: "/", label: "Beranda" },
+  { href: "/", label: "Home" },
   { href: "/launch", label: "Launch" },
-  { href: "/memestocks", label: "Memestock" },
+  { href: "/memestocks", label: "Memestocks" },
   { href: "/treasury", label: "Treasury" },
   { href: "/rewards", label: "Rewards" },
   { href: "/creator", label: "Creator" },

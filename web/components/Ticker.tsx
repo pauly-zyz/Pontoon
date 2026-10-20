@@ -12,31 +12,31 @@ function label(a: Activity, symbol: string) {
     case "buyback_burn":
       return (
         <>
-          <span className="text-split-buyback">🔥 ${symbol}</span> {formatTokens(String(a.data?.tokensBurned ?? 0))} dibakar
+          <span className="text-split-buyback">🔥 ${symbol}</span> {formatTokens(String(a.data?.tokensBurned ?? 0))} burned
         </>
       );
     case "launch":
       return (
         <>
-          <span className="text-accent">⚓ ${symbol}</span> baru diluncurkan
+          <span className="text-accent">⚓ ${symbol}</span> just launched
         </>
       );
     case "graduated":
       return (
         <>
-          <span className="text-emerald-300">🎓 ${symbol}</span> lulus ke Uniswap V4
+          <span className="text-emerald-300">🎓 ${symbol}</span> graduated to Uniswap V4
         </>
       );
     case "distribute":
       return (
         <>
-          <span className="text-sky-300">◆ ${symbol}</span> {formatEth(a.amount)} ETH fee dibagi
+          <span className="text-sky-300">◆ ${symbol}</span> {formatEth(a.amount)} ETH in fees split
         </>
       );
     default:
       return (
         <>
-          <span className="text-teal-200">✦ ${symbol}</span> {formatEth(a.amount)} ETH reward diklaim
+          <span className="text-teal-200">✦ ${symbol}</span> {formatEth(a.amount)} ETH in rewards claimed
         </>
       );
   }
@@ -51,7 +51,7 @@ export function Ticker() {
   const loop = [...items, ...items];
 
   return (
-    <div className="relative overflow-hidden border-y border-line/60 bg-surface/40 py-2.5" aria-label="Aktivitas terbaru">
+    <div className="relative overflow-hidden border-y border-line/60 bg-surface/40 py-2.5" aria-label="Latest activity">
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-bg to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-bg to-transparent" />
       <div className="animate-marquee flex w-max gap-10 text-sm whitespace-nowrap">

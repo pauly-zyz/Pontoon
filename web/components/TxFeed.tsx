@@ -9,23 +9,23 @@ import { Empty, Skeleton, TxLink } from "./ui";
 
 const KIND: Record<string, { label: string; color: string }> = {
   launch: { label: "Launch", color: "bg-accent" },
-  distribute: { label: "Distribusi", color: "bg-sky-400" },
+  distribute: { label: "Distribution", color: "bg-sky-400" },
   buyback_burn: { label: "Buyback-burn", color: "bg-amber-400" },
   stake: { label: "Stake", color: "bg-teal-400" },
   unstake: { label: "Unstake", color: "bg-slate-400" },
-  reward_claim: { label: "Klaim reward", color: "bg-teal-300" },
-  creator_claim: { label: "Klaim creator", color: "bg-violet-400" },
-  config_queued: { label: "Config antre", color: "bg-violet-300" },
-  config_applied: { label: "Config aktif", color: "bg-violet-400" },
-  config_cancelled: { label: "Config batal", color: "bg-slate-500" },
+  reward_claim: { label: "Reward claim", color: "bg-teal-300" },
+  creator_claim: { label: "Creator claim", color: "bg-violet-400" },
+  config_queued: { label: "Config queued", color: "bg-violet-300" },
+  config_applied: { label: "Config applied", color: "bg-violet-400" },
+  config_cancelled: { label: "Config cancelled", color: "bg-slate-500" },
   graduated: { label: "Graduated", color: "bg-emerald-400" },
-  cto_requested: { label: "CTO diajukan", color: "bg-rose-300" },
-  cto_approved: { label: "CTO disetujui", color: "bg-rose-400" },
-  cto_executed: { label: "CTO dijalankan", color: "bg-rose-500" },
-  cto_cancelled: { label: "CTO batal", color: "bg-slate-500" },
-  treasury_withdraw_queued: { label: "Penarikan antre", color: "bg-slate-300" },
-  treasury_withdraw: { label: "Penarikan treasury", color: "bg-slate-200" },
-  treasury_withdraw_cancelled: { label: "Penarikan batal", color: "bg-slate-500" },
+  cto_requested: { label: "CTO requested", color: "bg-rose-300" },
+  cto_approved: { label: "CTO approved", color: "bg-rose-400" },
+  cto_executed: { label: "CTO executed", color: "bg-rose-500" },
+  cto_cancelled: { label: "CTO cancelled", color: "bg-slate-500" },
+  treasury_withdraw_queued: { label: "Withdrawal queued", color: "bg-slate-300" },
+  treasury_withdraw: { label: "Treasury withdrawal", color: "bg-slate-200" },
+  treasury_withdraw_cancelled: { label: "Withdrawal cancelled", color: "bg-slate-500" },
 };
 
 function describe(a: Activity): string {
@@ -33,28 +33,28 @@ function describe(a: Activity): string {
   const eth = (v: unknown) => `${formatEth(String(v ?? 0))} ETH`;
   switch (a.kind) {
     case "launch":
-      return `oleh ${shortAddr(a.actor)}`;
+      return `by ${shortAddr(a.actor)}`;
     case "distribute":
-      return `${eth(a.amount)} dibagi · buyback ${eth(d.buyback)} · reward ${eth(d.rewards)}`;
+      return `${eth(a.amount)} split · buyback ${eth(d.buyback)} · rewards ${eth(d.rewards)}`;
     case "buyback_burn":
-      return `${eth(a.amount)} → ${formatTokens(String(d.tokensBurned ?? 0))} token dibakar`;
+      return `${eth(a.amount)} → ${formatTokens(String(d.tokensBurned ?? 0))} tokens burned`;
     case "stake":
     case "unstake":
-      return `${formatTokens(a.amount)} token · ${shortAddr(a.actor)}`;
+      return `${formatTokens(a.amount)} tokens · ${shortAddr(a.actor)}`;
     case "reward_claim":
     case "creator_claim":
       return `${eth(a.amount)} · ${shortAddr(a.actor)}`;
     case "config_queued":
     case "config_applied":
-      return `buyback ${pct(Number(d.buybackBps ?? 0))} · reward ${pct(Number(d.rewardBps ?? 0))}`;
+      return `buyback ${pct(Number(d.buybackBps ?? 0))} · rewards ${pct(Number(d.rewardBps ?? 0))}`;
     case "cto_requested":
     case "cto_approved":
-      return `admin baru ${shortAddr(String(d.newAdmin ?? ""))}`;
+      return `new admin ${shortAddr(String(d.newAdmin ?? ""))}`;
     case "cto_executed":
       return `${shortAddr(String(d.oldAdmin ?? ""))} → ${shortAddr(String(d.newAdmin ?? ""))}`;
     case "treasury_withdraw_queued":
     case "treasury_withdraw":
-      return `${eth(a.amount)} ke ${shortAddr(String(d.to ?? ""))}`;
+      return `${eth(a.amount)} to ${shortAddr(String(d.to ?? ""))}`;
     default:
       return "";
   }
@@ -70,7 +70,7 @@ export function TxFeed({ items, loading, showToken = true }: { items?: Activity[
   );
 
   if (loading) return <div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>;
-  if (!items?.length) return <Empty>Belum ada aktivitas.</Empty>;
+  if (!items?.length) return <Empty>No activity yet.</Empty>;
 
   return (
     <ul className="divide-y divide-line">

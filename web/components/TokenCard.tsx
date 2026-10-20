@@ -32,7 +32,7 @@ export function TokenCard({ token, rank }: { token: TokenListItem; rank?: number
         <TokenAvatar symbol={token.symbol} address={token.address} image={meta.image} size={48} />
         <div className="min-w-0 flex-1 pr-6">
           <div className="truncate font-display text-[1.05rem] font-semibold transition-colors group-hover:text-white">
-            {token.name || "Tanpa nama"}
+            {token.name || "Unnamed"}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             <span className="font-mono">${token.symbol}</span>
@@ -48,7 +48,7 @@ export function TokenCard({ token, rank }: { token: TokenListItem; rank?: number
           <dd className="mt-0.5 font-display text-sm font-semibold">{formatEth(token.marketCapEth, 2)} ETH</dd>
         </div>
         <div>
-          <dt className="text-muted">Volume 24j</dt>
+          <dt className="text-muted">24h volume</dt>
           <dd className="mt-0.5 font-display text-sm font-semibold">{formatEth(token.volume24h, 2)} ETH</dd>
         </div>
       </dl>

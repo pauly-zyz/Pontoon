@@ -51,7 +51,7 @@ export function useTx() {
         setHash(h);
         setStatus("confirming");
         const receipt = await client!.waitForTransactionReceipt({ hash: h });
-        if (receipt.status !== "success") throw new Error("Transaksi gagal (reverted)");
+        if (receipt.status !== "success") throw new Error("Transaction reverted");
         setStatus("success");
         qc.invalidateQueries();
         setTimeout(() => qc.invalidateQueries(), 2500);

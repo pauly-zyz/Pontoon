@@ -15,18 +15,18 @@ import { TxNotice } from "../TxNotice";
 import { AddressLink, Badge, Button, Card, CardTitle, cn, Empty, ErrorBox, Field, inputClass, PageTitle, Skeleton, Tabs, TxLink } from "../ui";
 
 const STATUS: Record<CtoStatus, { label: string; tone: "default" | "violet" | "accent" | "danger" }> = {
-  requested: { label: "Menunggu persetujuan", tone: "default" },
-  approved: { label: "Disetujui multisig", tone: "violet" },
-  executed: { label: "Dijalankan", tone: "accent" },
-  cancelled: { label: "Dibatalkan", tone: "danger" },
+  requested: { label: "Awaiting approval", tone: "default" },
+  approved: { label: "Approved by multisig", tone: "violet" },
+  executed: { label: "Executed", tone: "accent" },
+  cancelled: { label: "Cancelled", tone: "danger" },
 };
 
 const FILTERS = [
-  { value: "", label: "Semua" },
-  { value: "requested", label: "Diajukan" },
-  { value: "approved", label: "Disetujui" },
-  { value: "executed", label: "Selesai" },
-  { value: "cancelled", label: "Batal" },
+  { value: "", label: "All" },
+  { value: "requested", label: "Requested" },
+  { value: "approved", label: "Approved" },
+  { value: "executed", label: "Done" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 export function CtoView() {
@@ -43,7 +43,7 @@ export function CtoView() {
     <div>
       <PageTitle
         title="Community takeover"
-        subtitle={`Kalau creator meninggalkan token, komunitas bisa mengambil alih hak admin FeeVault. Alurnya: ajukan, disetujui multisig Pontoon, lalu dijalankan setelah timelock ${PARAMS.ctoTimelockDays} hari. Payout yang sudah diperoleh creator lama tetap bisa ia klaim.`}
+        subtitle={`If a creator abandons a token, the community can take over the FeeVault admin rights. The flow: request, approval by the Pontoon multisig, then execution after a ${PARAMS.ctoTimelockDays}-day timelock. The previous creator can still claim any payout they already earned.`}
       />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div>
@@ -55,7 +55,7 @@ export function CtoView() {
           ) : isLoading ? (
             <Skeleton className="h-48" />
           ) : !data?.length ? (
-            <Empty>Belum ada pengajuan.</Empty>
+            <Empty>No requests yet.</Empty>
           ) : (
             <div className="space-y-3">
               {data.map((r) => (
@@ -98,12 +98,12 @@ function RequestCard({ request: r, multisig }: { request: CtoRequest; multisig?:
           </Link>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
             <span>
-              Admin baru <AddressLink address={r.newAdmin} />
+              New admin <AddressLink address={r.newAdmin} />
             </span>
             <span>
-              Pengaju <AddressLink address={r.requester} />
+              Requested by <AddressLink address={r.requester} />
             </span>
-            {now && <span>Diajukan {timeAgo(r.requestedAt, now)}</span>}
+            {now && <span>Requested {timeAgo(r.requestedAt, now)}</span>}
             <TxLink hash={r.txHash} />
           </div>
         </div>
@@ -113,8 +113,8 @@ function RequestCard({ request: r, multisig }: { request: CtoRequest; multisig?:
       {open && (
         <div className="mt-4">
           <div className="mb-1 flex justify-between text-xs text-muted">
-            <span>Timelock {PARAMS.ctoTimelockDays} hari</span>
-            <span className={cn(!left && "text-accent")}>{left ? `sisa ${left}` : "selesai"}</span>
+            <span>{PARAMS.ctoTimelockDays}-day timelock</span>
+            <span className={cn(!left && "text-accent")}>{left ? `${left} left` : "complete"}</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full bg-violet-400" style={{ width: `${(elapsed / total) * 100}%` }} />
@@ -122,18 +122,18 @@ function RequestCard({ request: r, multisig }: { request: CtoRequest; multisig?:
           <div className="mt-4 flex flex-wrap gap-2">
             {r.status === "requested" && isMultisig && (
               <Button variant="secondary" disabled={tx.busy} onClick={() => call("approveCTO")}>
-                Setujui (multisig)
+                Approve (multisig)
               </Button>
             )}
             <Button
               disabled={!CONTRACTS_READY || !tx.ready || r.status !== "approved" || Boolean(left) || tx.busy}
               onClick={() => call("executeCTO")}
             >
-              Jalankan takeover
+              Execute takeover
             </Button>
             {canCancel && (
               <Button variant="danger" disabled={!tx.ready || tx.busy} onClick={() => call("cancelCTO")}>
-                Batalkan
+                Cancel
               </Button>
             )}
           </div>
@@ -142,7 +142,7 @@ function RequestCard({ request: r, multisig }: { request: CtoRequest; multisig?:
       )}
       {r.status === "executed" && r.oldAdmin && (
         <p className="mt-3 text-xs text-muted">
-          Admin pindah dari <AddressLink address={r.oldAdmin} /> ke <AddressLink address={r.newAdmin} />.
+          Admin moved from <AddressLink address={r.oldAdmin} /> to <AddressLink address={r.newAdmin} />.
         </p>
       )}
     </Card>
@@ -162,7 +162,7 @@ function RequestForm() {
 
   return (
     <Card className="lg:sticky lg:top-24 lg:self-start">
-      <CardTitle>Ajukan takeover</CardTitle>
+      <CardTitle>Request a takeover</CardTitle>
       <form
         className="space-y-4"
         onSubmit={async (e) => {
@@ -174,7 +174,7 @@ function RequestForm() {
           if (ok) setToken("");
         }}
       >
-        <Field label="Token" hint={known ? `${known.name} ($${known.symbol})` : token && !tokenOk ? "Alamat tidak valid" : "Alamat token Pontoon"}>
+        <Field label="Token" hint={known ? `${known.name} ($${known.symbol})` : token && !tokenOk ? "Invalid address" : "Pontoon token address"}>
           <input className={cn(inputClass, "font-mono")} value={token} onChange={(e) => setToken(e.target.value.trim())} placeholder="0x…" list="cto-tokens" />
           <datalist id="cto-tokens">
             {[...tokens.values()].map((t) => (
@@ -184,20 +184,20 @@ function RequestForm() {
             ))}
           </datalist>
         </Field>
-        <Field label="Admin baru" hint="Biasanya multisig tim takeover.">
+        <Field label="New admin" hint="Usually the takeover team's multisig.">
           <input className={cn(inputClass, "font-mono")} value={newAdmin} onChange={(e) => setNewAdmin(e.target.value.trim())} placeholder="0x…" />
         </Field>
         {user && (
           <button type="button" className="text-xs text-accent hover:underline" onClick={() => setNewAdmin(user)}>
-            Pakai alamat saya
+            Use my address
           </button>
         )}
         <Button type="submit" className="w-full" disabled={!CONTRACTS_READY || !tx.ready || !tokenOk || !adminOk || tx.busy}>
-          Ajukan CTO
+          Request CTO
         </Button>
         <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
         <p className="text-xs text-muted">
-          Satu pengajuan aktif per token. Creator saat ini, pengaju, atau multisig bisa membatalkannya sebelum dijalankan.
+          One active request per token. The current creator, the requester, or the multisig can cancel it before it executes.
         </p>
       </form>
     </Card>

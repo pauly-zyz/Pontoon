@@ -85,21 +85,21 @@ export function LaunchView() {
   );
 
   const errors: string[] = [];
-  if (!form.name.trim()) errors.push("Nama wajib diisi.");
-  if (form.name.length > 32) errors.push("Nama maks. 32 karakter.");
-  if (!form.symbol) errors.push("Ticker wajib diisi.");
-  if (form.symbol.length > 10) errors.push("Ticker maks. 10 karakter.");
-  if (form.description.length > 280) errors.push("Deskripsi maks. 280 karakter.");
+  if (!form.name.trim()) errors.push("Name is required.");
+  if (form.name.length > 32) errors.push("Name can be at most 32 characters.");
+  if (!form.symbol) errors.push("Ticker is required.");
+  if (form.symbol.length > 10) errors.push("Ticker can be at most 10 characters.");
+  if (form.description.length > 280) errors.push("Description can be at most 280 characters.");
   for (const k of ["image", "twitter", "telegram", "website"] as const)
-    if (form[k].trim() && !safeUrl(form[k].trim())) errors.push(`URL ${k} tidak valid.`);
-  if (metadataURI.length > MAX_META_BYTES) errors.push("Metadata terlalu panjang.");
+    if (form[k].trim() && !safeUrl(form[k].trim())) errors.push(`Invalid ${k} URL.`);
+  if (metadataURI.length > MAX_META_BYTES) errors.push("Metadata is too long.");
   let value = 0n;
   try {
     value = form.initialBuy.trim() ? parseEther(form.initialBuy.trim()) : 0n;
   } catch {
-    errors.push("Jumlah initial buy tidak valid.");
+    errors.push("Invalid initial buy amount.");
   }
-  if (!isAllowed(quoteKey)) errors.push(`Quote pair ${quoteKey} belum dibuka.`);
+  if (!isAllowed(quoteKey)) errors.push(`Quote pair ${quoteKey} is not open yet.`);
 
   const quote = QUOTE_PAIRS.find((q) => q.key === quoteKey)!;
 
@@ -130,26 +130,26 @@ export function LaunchView() {
     <div>
       <PageTitle
         title="Launch token"
-        subtitle="Token dibuat di Pons V2 dengan FeeVault Pontoon sebagai penerima fee creator. Pembagian fee bisa diubah nanti, dengan timelock 24 jam."
+        subtitle="Your token is created on Pons V2 with a Pontoon FeeVault as the creator-fee recipient. You can change the fee split later, behind a 24h timelock."
       />
       <form onSubmit={submit} className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <Card>
             <CardTitle>
               <Step n={1} />
-              Identitas
+              Identity
             </CardTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nama">
+              <Field label="Name">
                 <input className={inputClass} value={form.name} onChange={set("name")} placeholder="Pontoon Dog" maxLength={32} />
               </Field>
               <Field label="Ticker">
                 <input className={cn(inputClass, "font-mono")} value={form.symbol} onChange={set("symbol")} placeholder="PDOG" maxLength={10} />
               </Field>
-              <Field label="URL gambar" hint="https://… (PNG/JPG/GIF). Upload gambar menyusul.">
+              <Field label="Image URL" hint="https://… (PNG/JPG/GIF). Image upload is coming soon.">
                 <input className={inputClass} value={form.image} onChange={set("image")} placeholder="https://…" />
               </Field>
-              <Field label="Deskripsi" hint={`${form.description.length}/280`}>
+              <Field label="Description" hint={`${form.description.length}/280`}>
                 <textarea className={cn(inputClass, "min-h-[42px]")} rows={2} value={form.description} onChange={set("description")} maxLength={280} />
               </Field>
               <Field label="X / Twitter">
@@ -193,19 +193,19 @@ export function LaunchView() {
                       {q.label}
                     </div>
                     <div className="text-[11px] text-muted">
-                      {q.kind === "native" ? "Native" : q.kind === "stable" ? "Stablecoin" : "Saham ter-tokenisasi"}
+                      {q.kind === "native" ? "Native" : q.kind === "stable" ? "Stablecoin" : "Tokenized stock"}
                     </div>
                   </button>
                 );
               })}
             </div>
             <p className="mt-3 text-xs text-muted">
-              Untuk pasangan selain ETH, buyback akan swap ETH ke quote asset dulu, lalu ke token.
+              For pairs other than ETH, buybacks swap ETH into the quote asset first, then into the token.
             </p>
             <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-line bg-bg/40 px-4 py-3">
               <span>
-                <span className="block text-sm font-medium">Tag memestock</span>
-                <span className="text-xs text-muted">Token bertema saham/perusahaan tampil di halaman Memestock.</span>
+                <span className="block text-sm font-medium">Memestock tag</span>
+                <span className="text-xs text-muted">Stock- or company-themed tokens appear on the Memestocks page.</span>
               </span>
               <input type="checkbox" className="h-5 w-5 accent-teal-400" checked={memestock} onChange={(e) => setMemestock(e.target.checked)} />
             </label>
@@ -214,7 +214,7 @@ export function LaunchView() {
           <Card>
             <CardTitle>
               <Step n={3} />
-              Pembagian fee
+              Fee split
             </CardTitle>
             <FeeSliders value={fee} onChange={setFee} />
           </Card>
@@ -226,7 +226,7 @@ export function LaunchView() {
             <div className="mb-5 flex items-center gap-3">
               <TokenAvatar symbol={form.symbol || "?"} address="0x5a5a5a" image={safeUrl(form.image) ?? undefined} size={52} />
               <div className="min-w-0">
-                <div className="truncate font-display text-lg font-semibold">{form.name || "Nama token"}</div>
+                <div className="truncate font-display text-lg font-semibold">{form.name || "Token name"}</div>
                 <div className="flex flex-wrap gap-1.5 text-xs text-muted">
                   <span className="font-mono">${form.symbol || "TICKER"}</span>
                   <Badge tone={quote.kind === "stock" ? "violet" : "default"}>/{quote.label}</Badge>
@@ -238,7 +238,7 @@ export function LaunchView() {
           </Card>
 
           <Card>
-            <Field label="Initial buy (opsional)" hint="ETH yang langsung dibelikan token untuk Anda saat launch.">
+            <Field label="Initial buy (optional)" hint="ETH spent on your token for you at launch.">
               <div className="relative">
                 <input className={cn(inputClass, "pr-14")} inputMode="decimal" value={form.initialBuy} onChange={set("initialBuy")} placeholder="0.0" />
                 <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">ETH</span>
@@ -252,7 +252,7 @@ export function LaunchView() {
               </ul>
             )}
             <Button type="submit" className="mt-5 w-full py-3" disabled={!CONTRACTS_READY || !tx.ready || errors.length > 0 || tx.busy}>
-              {!CONTRACTS_READY ? "Deploy (nonaktif di mode dummy)" : !tx.ready ? "Hubungkan dompet dulu" : tx.busy ? "Memproses…" : "Deploy token"}
+              {!CONTRACTS_READY ? "Deploy (disabled in demo mode)" : !tx.ready ? "Connect your wallet first" : tx.busy ? "Processing…" : "Deploy token"}
             </Button>
             <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
           </Card>

@@ -20,20 +20,20 @@ export function FeeSliders({ value, onChange }: { value: FeeConfigState; onChang
         value={value.buybackBps}
         max={PARAMS.maxBuybackBps}
         onChange={setBuyback}
-        hint="Maks. 80%, supaya creator tetap punya insentif."
+        hint="Max 80%, so the creator keeps an incentive."
       />
       <Slider
-        label="Reward holder (staking)"
+        label="Holder rewards (staking)"
         color="var(--color-split-rewards)"
         value={value.rewardBps}
         max={PARAMS.maxRewardBps}
         onChange={setReward}
-        hint="Maks. 50%, mencegah janji reward berlebihan."
+        hint="Max 50%, to prevent overpromising rewards."
       />
       <div className="flex items-center justify-between rounded-xl border border-line bg-bg/40 px-3 py-2 text-sm">
         <span className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "var(--color-split-creator)" }} />
-          Payout creator (sisa)
+          Creator payout (remainder)
         </span>
         <span className="tabular font-semibold">{pct(creatorBps)}</span>
       </div>
@@ -92,18 +92,18 @@ export function FeePreview({ config, platformBps }: { config: FeeConfigState; pl
   const rewards = (remainder * BigInt(config.rewardBps)) / 10_000n;
   const creator = remainder - buyback - rewards;
   const rows: [string, bigint, string][] = [
-    ["Insentif pemanggil distribute()", capped, "var(--color-split-incentive)"],
+    ["distribute() caller incentive", capped, "var(--color-split-incentive)"],
     [`Platform (${pct(platformBps)})`, platform, "var(--color-split-platform)"],
     ["Buyback & burn", buyback, "var(--color-split-buyback)"],
-    ["Reward holder", rewards, "var(--color-split-rewards)"],
-    ["Payout creator", creator, "var(--color-split-creator)"],
+    ["Holder rewards", rewards, "var(--color-split-rewards)"],
+    ["Creator payout", creator, "var(--color-split-creator)"],
   ];
 
   return (
     <div className="space-y-4">
       <FeeSplitBar parts={splitFromConfig(config.buybackBps, config.rewardBps, platformBps)} />
       <div>
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Dari setiap 1 ETH fee</div>
+        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Out of every 1 ETH in fees</div>
         <ul className="tabular space-y-1 text-sm">
           {rows.map(([label, v, color]) => (
             <li key={label} className="flex items-center gap-2">

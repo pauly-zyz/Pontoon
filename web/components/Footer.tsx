@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Logo } from "./Header";
 
 const COLS = [
-  { title: "Produk", links: [["Launch", "/launch"], ["Memestock", "/memestocks"], ["Rewards", "/rewards"], ["Creator", "/creator"]] },
-  { title: "Transparansi", links: [["Treasury", "/treasury"], ["Community takeover", "/cto"], ["Cara kerja", "/docs"]] },
+  { title: "Product", links: [["Launch", "/launch"], ["Memestock", "/memestocks"], ["Rewards", "/rewards"], ["Creator", "/creator"]] },
+  { title: "Transparency", links: [["Treasury", "/treasury"], ["Community takeover", "/cto"], ["How it works", "/docs"]] },
 ];
 
 export function Footer() {
@@ -14,8 +14,8 @@ export function Footer() {
         <div>
           <Logo />
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
-            Launchpad di Robinhood Chain. Token diluncurkan lewat Pons V2, fee creator dibagi on-chain ke buyback-and-burn,
-            reward holder, dan creator.
+            A Robinhood Chain launchpad. Tokens launch on Pons V2, and creator fees are split on-chain between
+            buyback-and-burn, holder rewards, and the creator.
           </p>
         </div>
         {COLS.map((c) => (
@@ -34,7 +34,7 @@ export function Footer() {
         ))}
       </div>
       <div className="border-t border-white/5 px-4 py-5 text-center text-xs text-muted sm:px-6">
-        Dibangun di atas Pons V2 · Robinhood Chain · Bukan nasihat keuangan. Contract belum diaudit.
+        Built on Pons V2 · Robinhood Chain · Not financial advice. Contracts are unaudited.
       </div>
     </footer>
   );

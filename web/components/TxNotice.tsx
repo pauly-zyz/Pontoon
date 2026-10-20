@@ -5,10 +5,10 @@ import { TxLink } from "./ui";
 export function TxNotice({ status, hash, error }: { status: TxStatus; hash?: string; error?: string }) {
   if (status === "idle") return null;
   const text = {
-    signing: "Konfirmasi di dompet…",
-    confirming: "Menunggu konfirmasi blok…",
-    success: "Berhasil.",
-    error: `Gagal: ${error ?? "unknown"}`,
+    signing: "Confirm in your wallet…",
+    confirming: "Waiting for confirmation…",
+    success: "Success.",
+    error: `Failed: ${error ?? "unknown error"}`,
   }[status];
   const tone = status === "error" ? "text-danger" : status === "success" ? "text-accent" : "text-muted";
   return (

@@ -102,35 +102,35 @@ export function TradePanel({ token }: { token: Token }) {
       </CardTitle>
       <Tabs
         tabs={[
-          { value: "buy", label: "Beli" },
-          { value: "sell", label: "Jual" },
+          { value: "buy", label: "Buy" },
+          { value: "sell", label: "Sell" },
         ]}
         value={side}
         onChange={setSide}
       />
       {side === "sell" ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
-          Jual menunggu ABI router Pons V2 yang asli (interface placeholder baru punya fungsi beli).
+          Selling is waiting on the real Pons V2 router ABI (the placeholder interface only supports buys).
         </p>
       ) : (
         <div className="mt-4 space-y-3">
           <AmountInput value={amount} onChange={setAmount} unit="ETH" />
           <div className="flex items-center justify-between text-xs text-muted">
-            <span>Saldo: {ethBal.data ? `${formatEth(ethBal.data.value)} ETH` : "—"}</span>
+            <span>Balance: {ethBal.data ? `${formatEth(ethBal.data.value)} ETH` : "—"}</span>
             <SlippagePicker value={slippage} onChange={setSlippage} />
           </div>
           <div className="rounded-xl bg-bg/50 px-3 py-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted">Perkiraan diterima</span>
+              <span className="text-muted">Estimated received</span>
               <span className="tabular font-medium">{quote.data ? `${formatTokens(quote.data)} ${token.symbol}` : "—"}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted">Minimum</span>
+              <span className="text-muted">Minimum received</span>
               <span className="tabular">{quote.data ? formatTokens(minOut) : "—"}</span>
             </div>
           </div>
           <Button className="w-full py-3" disabled={!enabled || !tx.ready || !ethIn || !quote.data || tx.busy} onClick={buy}>
-            {!enabled ? "Trading nonaktif" : !tx.ready ? "Hubungkan dompet" : tx.busy ? "Memproses…" : `Beli ${token.symbol}`}
+            {!enabled ? "Trading disabled" : !tx.ready ? "Connect wallet" : tx.busy ? "Processing…" : `Buy ${token.symbol}`}
           </Button>
           <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
         </div>
@@ -160,15 +160,15 @@ export function VaultPanel({ token }: { token: Token }) {
       <CardTitle>FeeVault</CardTitle>
       <dl className="tabular space-y-1.5 text-sm">
         <div className="flex justify-between">
-          <dt className="text-muted">Menunggu distribusi</dt>
+          <dt className="text-muted">Awaiting distribution</dt>
           <dd className="font-semibold">{CONTRACTS_READY ? `${formatEth(amount)} ETH` : "—"}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted">Insentif untuk Anda</dt>
+          <dt className="text-muted">Your incentive</dt>
           <dd>{CONTRACTS_READY ? `${formatEth(incentive, 5)} ETH` : "—"}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted">Total fee diterima</dt>
+          <dt className="text-muted">Total fees received</dt>
           <dd>{formatEth(token.feesReceived)} ETH</dd>
         </div>
       </dl>
@@ -178,9 +178,9 @@ export function VaultPanel({ token }: { token: Token }) {
         disabled={!CONTRACTS_READY || !tx.ready || amount === 0n || tx.busy}
         onClick={() => tx.send((write) => write({ address: token.vault, abi: FeeVaultAbi, functionName: "distribute" }))}
       >
-        {tx.busy ? "Memproses…" : "Jalankan distribute()"}
+        {tx.busy ? "Processing…" : "Run distribute()"}
       </Button>
-      <p className="mt-2 text-xs text-muted">Siapa pun boleh memanggil. Pemanggil dapat 0,5% (maks. 0,005 ETH).</p>
+      <p className="mt-2 text-xs text-muted">Anyone can call it. The caller earns 0.5% (max 0.005 ETH).</p>
       <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
     </Card>
   );
@@ -220,15 +220,15 @@ export function BuybackPanel({ token }: { token: Token }) {
       <CardTitle>Buyback & burn</CardTitle>
       <dl className="tabular space-y-1.5 text-sm">
         <div className="flex justify-between">
-          <dt className="text-muted">ETH menunggu buyback</dt>
+          <dt className="text-muted">ETH awaiting buyback</dt>
           <dd className="font-semibold">{enabled ? `${formatEth(pendingEth)} ETH` : "—"}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted">Batas per eksekusi</dt>
-          <dd>{enabled ? `${formatEth(cap)} ETH` : `min(${PARAMS.maxBuybackEth} ETH, 1% likuiditas)`}</dd>
+          <dt className="text-muted">Cap per execution</dt>
+          <dd>{enabled ? `${formatEth(cap)} ETH` : `min(${PARAMS.maxBuybackEth} ETH, 1% of liquidity)`}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted">Sudah dibakar</dt>
+          <dt className="text-muted">Burned so far</dt>
           <dd>
             {formatTokens(token.tokensBurned)} {token.symbol}
           </dd>
@@ -254,13 +254,13 @@ export function BuybackPanel({ token }: { token: Token }) {
         }
       >
         {paused
-          ? "Buyback di-pause"
+          ? "Buybacks paused"
           : tx.busy
-            ? "Memproses…"
+            ? "Processing…"
             : enabled && pendingEth === 0n
-              ? "Belum ada ETH untuk buyback"
+              ? "No ETH queued for buyback"
               : enabled && cap === 0n
-                ? "Likuiditas pool belum cukup"
+                ? "Not enough pool liquidity"
                 : `Buyback ${formatEth(amount)} ETH`}
       </Button>
       <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
@@ -310,14 +310,14 @@ export function StakingPanel({ token }: { token: Token }) {
 
   return (
     <Card>
-      <CardTitle aside={<span className="text-xs text-muted">{token.stakerCount} staker</span>}>Staking reward</CardTitle>
+      <CardTitle aside={<span className="text-xs text-muted">{token.stakerCount} stakers</span>}>Staking rewards</CardTitle>
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-bg/50 p-3">
-          <div className="text-xs text-muted">Di-stake</div>
+          <div className="text-xs text-muted">Staked</div>
           <div className="tabular font-semibold">{enabled ? formatTokens(staked) : "—"}</div>
         </div>
         <div className="rounded-xl bg-bg/50 p-3">
-          <div className="text-xs text-muted">Reward bisa diklaim</div>
+          <div className="text-xs text-muted">Claimable rewards</div>
           <div className="tabular font-semibold text-accent">{enabled ? `${formatEth(reward, 5)} ETH` : "—"}</div>
         </div>
       </div>
@@ -335,11 +335,11 @@ export function StakingPanel({ token }: { token: Token }) {
       <div className="mt-3 space-y-3">
         <AmountInput value={amount} onChange={setAmount} unit={token.symbol} onMax={() => setAmount(formatUnits(limit, 18))} />
         <div className="text-xs text-muted">
-          {mode === "stake" ? "Saldo" : "Di-stake"}: {enabled ? formatTokens(limit) : "—"}
+          {mode === "stake" ? "Balance" : "Staked"}: {enabled ? formatTokens(limit) : "—"}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Button disabled={!enabled || !tx.ready || !value || tooMuch || tx.busy} onClick={submit}>
-            {tooMuch ? "Melebihi saldo" : needsApproval ? "Approve & stake" : mode === "stake" ? "Stake" : "Unstake"}
+            {tooMuch ? "Exceeds balance" : needsApproval ? "Approve & stake" : mode === "stake" ? "Stake" : "Unstake"}
           </Button>
           <Button
             variant="secondary"
@@ -348,7 +348,7 @@ export function StakingPanel({ token }: { token: Token }) {
               tx.send((write) => write({ address: token.holderRewards, abi: HolderRewardsAbi, functionName: "claim" }))
             }
           >
-            Klaim ETH
+            Claim ETH
           </Button>
         </div>
         <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
