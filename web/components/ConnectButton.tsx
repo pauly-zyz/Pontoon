@@ -10,11 +10,11 @@ export function ConnectButton() {
     <RKConnectButton.Custom>
       {({ account, chain: current, openConnectModal, openChainModal, openAccountModal, mounted }) => {
         if (!mounted) return <div className="h-9 w-32" aria-hidden />;
-        if (!account) return <Button onClick={openConnectModal}>Hubungkan dompet</Button>;
+        if (!account) return <Button onClick={openConnectModal}>Connect wallet</Button>;
         if (current?.unsupported || current?.id !== chain.id)
           return (
             <Button variant="danger" onClick={openChainModal}>
-              Ganti ke {chain.name}
+              Switch to {chain.name}
             </Button>
           );
         return (

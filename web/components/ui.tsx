@@ -125,7 +125,7 @@ export function Empty({ children }: { children: ReactNode }) {
 export function ErrorBox({ error }: { error: unknown }) {
   return (
     <div className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
-      Gagal memuat data dari indexer: {error instanceof Error ? error.message : String(error)}
+      Could not load data from the indexer: {error instanceof Error ? error.message : String(error)}
     </div>
   );
 }

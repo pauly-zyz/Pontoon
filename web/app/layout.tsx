@@ -13,12 +13,12 @@ const display = Space_Grotesk({ variable: "--font-display", subsets: ["latin"], 
 export const metadata: Metadata = {
   title: { default: "Pontoon", template: "%s · Pontoon" },
   description:
-    "Launchpad di Robinhood Chain di atas Pons V2. Fee creator dibagi ke payout, buyback-and-burn, dan reward ETH untuk holder.",
+    "A Robinhood Chain launchpad built on Pons V2. Creator fees are split between creator payouts, buyback-and-burn, and ETH rewards for holders.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <Providers>
           <MockBanner />

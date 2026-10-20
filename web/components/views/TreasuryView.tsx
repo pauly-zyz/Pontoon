@@ -31,23 +31,23 @@ export function TreasuryView() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Treasury & transparansi"
-        subtitle="Semua angka dihitung dari event on-chain. Fee masuk ke FeeVault tiap token, lalu dibagi lewat distribute() yang bisa dipanggil siapa pun."
+        title="Treasury & transparency"
+        subtitle="Every number is computed from on-chain events. Fees land in each token's FeeVault and are split by distribute(), which anyone can call."
       />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Fee masuk" value={`${formatEth(fees.received, 3)} ETH`} hint={`${formatEth(fees.distributed, 3)} ETH sudah dibagi`} />
-        <Stat label="Buyback dieksekusi" value={`${formatEth(buyback.ethSpent, 3)} ETH`} hint={`${buyback.count}× burn · ${formatEth(buyback.ethPending, 3)} ETH menunggu`} />
-        <Stat label="Reward ke holder" value={`${formatEth(rewards.funded, 3)} ETH`} hint={`${formatEth(rewards.claimed, 3)} ETH sudah diklaim`} />
+        <Stat label="Fees received" value={`${formatEth(fees.received, 3)} ETH`} hint={`${formatEth(fees.distributed, 3)} ETH distributed`} />
+        <Stat label="Buybacks executed" value={`${formatEth(buyback.ethSpent, 3)} ETH`} hint={`${buyback.count} burns · ${formatEth(buyback.ethPending, 3)} ETH pending`} />
+        <Stat label="Holder rewards" value={`${formatEth(rewards.funded, 3)} ETH`} hint={`${formatEth(rewards.claimed, 3)} ETH claimed`} />
         <Stat
-          label="Saldo PlatformTreasury"
+          label="PlatformTreasury balance"
           value={`${formatEth(onchain.data?.value ?? pt.balance, 3)} ETH`}
-          hint={onchain.data ? "saldo on-chain" : "dari indexer"}
+          hint={onchain.data ? "on-chain balance" : "from the indexer"}
         />
       </section>
 
       <Card>
-        <CardTitle>Ke mana fee pergi</CardTitle>
+        <CardTitle>Where the fees go</CardTitle>
         <FeeSplitBar
           parts={{
             platform: toNum(split.platform),
@@ -62,7 +62,7 @@ export function TreasuryView() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <Card>
-          <CardTitle>Transaksi terbaru</CardTitle>
+          <CardTitle>Latest transactions</CardTitle>
           <TxFeed items={data.feed} />
         </Card>
         <div className="space-y-6">
@@ -70,31 +70,31 @@ export function TreasuryView() {
             <CardTitle aside={contracts.treasury && <AddressLink address={contracts.treasury} />}>PlatformTreasury</CardTitle>
             <dl className="tabular mb-4 space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted">Total diterima</dt>
+                <dt className="text-muted">Total received</dt>
                 <dd>{formatEth(pt.received)} ETH</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted">Total ditarik</dt>
+                <dt className="text-muted">Total withdrawn</dt>
                 <dd>{formatEth(pt.withdrawn)} ETH</dd>
               </div>
             </dl>
-            <p className="mb-3 text-xs text-muted">Penarikan butuh multisig dan timelock 48 jam.</p>
+            <p className="mb-3 text-xs text-muted">Withdrawals require the multisig and a 48h timelock.</p>
             {pt.withdrawals.length === 0 ? (
-              <Empty>Belum ada penarikan.</Empty>
+              <Empty>No withdrawals yet.</Empty>
             ) : (
               <Table
-                head={["#", "Jumlah", "Ke", "Status"]}
+                head={["#", "Amount", "To", "Status"]}
                 rows={pt.withdrawals.map((w) => [
                   w.id,
                   `${formatEth(w.amount)} ETH`,
                   <AddressLink key="to" address={w.to} />,
                   w.status === "queued" ? (
                     <Badge key="s" tone="violet">
-                      {now && countdown(w.eta, now) ? countdown(w.eta, now) : "siap dieksekusi"}
+                      {now && countdown(w.eta, now) ? countdown(w.eta, now) : "ready to execute"}
                     </Badge>
                   ) : (
                     <Badge key="s" tone={w.status === "executed" ? "accent" : "default"}>
-                      {w.status === "executed" ? "dieksekusi" : "dibatalkan"}
+                      {w.status === "executed" ? "executed" : "cancelled"}
                     </Badge>
                   ),
                 ])}
@@ -102,7 +102,7 @@ export function TreasuryView() {
             )}
           </Card>
           <Card>
-            <CardTitle>Alamat contract</CardTitle>
+            <CardTitle>Contract addresses</CardTitle>
             <ul className="space-y-1.5 text-sm">
               {(
                 [
@@ -115,7 +115,7 @@ export function TreasuryView() {
               ).map(([name, a]) => (
                 <li key={name} className="flex justify-between">
                   <span className="text-muted">{name}</span>
-                  {a ? <AddressLink address={a} /> : <span className="text-xs text-muted">belum diset</span>}
+                  {a ? <AddressLink address={a} /> : <span className="text-xs text-muted">not set</span>}
                 </li>
               ))}
             </ul>

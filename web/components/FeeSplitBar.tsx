@@ -6,8 +6,8 @@ const META: Record<SplitKey, { label: string; color: string }> = {
   platform: { label: "Platform", color: "var(--color-split-platform)" },
   creator: { label: "Creator", color: "var(--color-split-creator)" },
   buyback: { label: "Buyback & burn", color: "var(--color-split-buyback)" },
-  rewards: { label: "Reward holder", color: "var(--color-split-rewards)" },
-  incentive: { label: "Insentif pemanggil", color: "var(--color-split-incentive)" },
+  rewards: { label: "Holder rewards", color: "var(--color-split-rewards)" },
+  incentive: { label: "Caller incentive", color: "var(--color-split-incentive)" },
 };
 
 /** Share of the whole fee going to each destination, in bps of the total. */

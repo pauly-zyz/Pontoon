@@ -18,7 +18,7 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
     [trades],
   );
 
-  if (points.length < 2) return <Empty>Belum cukup trade untuk grafik.</Empty>;
+  if (points.length < 2) return <Empty>Not enough trades for a chart yet.</Empty>;
 
   const W = 640;
   const H = 240;
@@ -52,7 +52,7 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
       <div className="mb-3 flex flex-wrap items-baseline gap-3">
         <span className="tabular font-display text-3xl font-semibold">{fmt(h ? h.price : last)} ETH</span>
         {h ? (
-          <span className="text-sm text-muted">{new Date(h.ts * 1000).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</span>
+          <span className="text-sm text-muted">{new Date(h.ts * 1000).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</span>
         ) : (
           <span
             className={`tabular rounded-md px-1.5 py-0.5 text-sm font-semibold ${up ? "bg-accent/15 text-accent" : "bg-red-400/15 text-danger"}`}
@@ -60,14 +60,14 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
             {up ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
           </span>
         )}
-        <span className="text-xs text-muted">per token · {points.length} trade</span>
+        <span className="text-xs text-muted">per token · {points.length} trades</span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-60 w-full cursor-crosshair touch-none"
         preserveAspectRatio="none"
         role="img"
-        aria-label="Grafik harga"
+        aria-label="Price chart"
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
       >

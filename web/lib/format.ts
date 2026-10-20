@@ -24,13 +24,13 @@ export const pct = (bps: number, digits = 0) => `${(bps / 100).toFixed(digits)}%
 
 export function timeAgo(ts: number, now: number): string {
   const s = Math.max(0, now - ts);
-  if (s < 60) return `${s} dtk lalu`;
-  if (s < 3600) return `${Math.floor(s / 60)} mnt lalu`;
-  if (s < 86400) return `${Math.floor(s / 3600)} jam lalu`;
-  return `${Math.floor(s / 86400)} hari lalu`;
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 }
 
-/** "08:59:58" or "2 hari 05:14" until `eta`, or null once passed. */
+/** "08:59:58" or "2d 05:14" until `eta`, or null once passed. */
 export function countdown(eta: number, now: number): string | null {
   const s = eta - now;
   if (s <= 0) return null;
@@ -39,7 +39,7 @@ export function countdown(eta: number, now: number): string | null {
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
   const pad = (x: number) => String(x).padStart(2, "0");
-  return d > 0 ? `${d} hari ${pad(h)}:${pad(m)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  return d > 0 ? `${d}d ${pad(h)}:${pad(m)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
 
 export const txUrl = (hash: string) => (EXPLORER_URL ? `${EXPLORER_URL}/tx/${hash}` : null);

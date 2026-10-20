@@ -15,9 +15,9 @@ import { Card, CardTitle, Empty, ErrorBox, Skeleton, Stat, Tabs } from "../ui";
 
 const TABS: { value: TokenTab; label: string }[] = [
   { value: "trending", label: "🔥 Trending" },
-  { value: "new", label: "✨ Baru" },
-  { value: "graduating", label: "🎯 Hampir Lulus" },
-  { value: "memestock", label: "📈 Memestock" },
+  { value: "new", label: "✨ New" },
+  { value: "graduating", label: "🎯 Almost graduated" },
+  { value: "memestock", label: "📈 Memestocks" },
 ];
 
 export function TokenGrid({ tab, quote }: { tab: TokenTab; quote?: string }) {
@@ -29,7 +29,7 @@ export function TokenGrid({ tab, quote }: { tab: TokenTab; quote?: string }) {
         {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-60" />)}
       </div>
     );
-  if (!data?.length) return <Empty>Belum ada token di sini.</Empty>;
+  if (!data?.length) return <Empty>No tokens here yet.</Empty>;
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {data.map((t, i) => (
@@ -59,17 +59,18 @@ function Hero() {
               <span className="animate-ping-soft absolute inline-flex h-full w-full rounded-full bg-accent" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
             </span>
-            Launchpad di Robinhood Chain · di atas Pons V2
+            Launchpad on Robinhood Chain · built on Pons V2
           </span>
           <h1 className="mt-5 font-display text-[2.6rem] leading-[1.05] font-bold tracking-tight sm:text-6xl">
-            Setiap trade
+            Every trade
             <br />
-            <span className="text-gradient">memberi balik.</span>
+            <span className="text-gradient">gives back.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
-            Fee creator masuk ke vault on-chain, lalu otomatis dibagi ke <span className="text-split-buyback">buyback-and-burn</span>,{" "}
-            <span className="text-split-rewards">reward ETH untuk staker</span>, dan{" "}
-            <span className="text-split-creator">payout creator</span>. Tidak ada yang bisa menarik porsi holder.
+            Creator fees flow into an on-chain vault and are split automatically between{" "}
+            <span className="text-split-buyback">buyback-and-burn</span>,{" "}
+            <span className="text-split-rewards">ETH rewards for stakers</span>, and the{" "}
+            <span className="text-split-creator">creator payout</span>. Nobody can withdraw the holders&apos; share.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -82,19 +83,19 @@ function Hero() {
               href="/docs"
               className="rounded-xl border border-line bg-surface/60 px-6 py-3 text-sm font-semibold backdrop-blur transition hover:border-accent/40"
             >
-              Cara kerja
+              How it works
             </Link>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted">
-            <li>✓ Timelock 24 jam untuk ubah fee</li>
-            <li>✓ Buyback ke 0x…dEaD, terverifikasi</li>
-            <li>✓ Klaim tidak pernah dikunci</li>
+            <li>✓ 24h timelock on fee changes</li>
+            <li>✓ Verifiable burns to 0x…dEaD</li>
+            <li>✓ Claims are never locked</li>
           </ul>
         </div>
 
         <div className="glass animate-float relative rounded-3xl p-5 sm:p-6">
           <div className="mb-3 flex items-center justify-between text-xs text-muted">
-            <span className="font-medium tracking-[0.14em] uppercase">Alur fee</span>
+            <span className="font-medium tracking-[0.14em] uppercase">Fee flow</span>
             <span>per trade</span>
           </div>
           <FeeFlow />
@@ -131,17 +132,17 @@ export function HomeView() {
         <ErrorBox error={stats.error} />
       ) : (
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Volume 24 jam" value={s ? <CountUp value={eth(s.volume24h)} format={fmtEth} /> : "…"} hint={s && `${s.trades24h} trade`} />
+          <Stat label="24h volume" value={s ? <CountUp value={eth(s.volume24h)} format={fmtEth} /> : "…"} hint={s && `${s.trades24h} trades`} />
           <Stat
-            label="Token diluncurkan"
+            label="Tokens launched"
             value={s ? <CountUp value={s.tokensLaunched} format={fmtInt} /> : "…"}
-            hint={s && `+${s.tokensLaunched24h} hari ini · ${s.graduated} graduated`}
+            hint={s && `+${s.tokensLaunched24h} today · ${s.graduated} graduated`}
           />
-          <Stat label="Total buyback" value={s ? <CountUp value={eth(s.totalBuybackEth)} format={fmtEth} /> : "…"} hint="ETH dipakai beli token" />
+          <Stat label="Total buyback" value={s ? <CountUp value={eth(s.totalBuybackEth)} format={fmtEth} /> : "…"} hint="ETH spent buying tokens" />
           <Stat
             label="Total burn"
             value={s ? <CountUp value={s.buybackCount} format={(n) => `${fmtInt(n)}×`} /> : "…"}
-            hint="buyback-and-burn ke 0x…dEaD"
+            hint="buyback-and-burns to 0x…dEaD"
           />
         </section>
       )}
@@ -152,7 +153,7 @@ export function HomeView() {
             <Tabs tabs={TABS} value={tab} onChange={setTab} />
             {tab === "memestock" && (
               <Link href="/memestocks" className="text-sm text-accent hover:underline">
-                Filter per quote pair →
+                Filter by quote pair →
               </Link>
             )}
           </div>
@@ -171,7 +172,7 @@ export function HomeView() {
                 </span>
               }
             >
-              Aktivitas terbaru
+              Latest activity
             </CardTitle>
             <TxFeed items={activity.data} loading={activity.isLoading} />
           </Card>

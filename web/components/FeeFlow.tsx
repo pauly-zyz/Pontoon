@@ -2,13 +2,13 @@
 export function FeeFlow() {
   const outs = [
     { y: 8, label: "Platform", sub: "PlatformTreasury", color: "var(--color-split-platform)" },
-    { y: 76, label: "Creator", sub: "payout (pull)", color: "var(--color-split-creator)" },
+    { y: 76, label: "Creator", sub: "claimable payout", color: "var(--color-split-creator)" },
     { y: 144, label: "Buyback & burn", sub: "→ 0x…dEaD", color: "var(--color-split-buyback)" },
-    { y: 212, label: "Reward holder", sub: "ETH ke staker", color: "var(--color-split-rewards)" },
+    { y: 212, label: "Holder rewards", sub: "ETH to stakers", color: "var(--color-split-rewards)" },
   ];
   const cy = 130; // vertical center
   return (
-    <svg viewBox="0 0 560 260" className="h-auto w-full" role="img" aria-label="Alur fee: trade, FeeVault, lalu platform, creator, buyback, dan reward holder">
+    <svg viewBox="0 0 560 260" className="h-auto w-full" role="img" aria-label="Fee flow: trade, FeeVault, then platform, creator, buyback, and holder rewards">
       <defs>
         <linearGradient id="ff-vault" x1="0" x2="1" y1="0" y2="1">
           <stop offset="0" stopColor="#5eead4" />

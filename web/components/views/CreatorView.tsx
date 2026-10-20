@@ -21,10 +21,10 @@ export function CreatorView() {
   return (
     <div>
       <PageTitle
-        title="Dashboard creator"
-        subtitle="Klaim payout, dan antrekan perubahan pembagian fee. Perubahan baru berlaku 24 jam setelah diantrekan, supaya holder sempat melihatnya."
+        title="Creator dashboard"
+        subtitle="Claim your payout and queue changes to your fee split. Changes take effect 24 hours after queueing, so holders can see them coming."
       />
-      <WalletGate reason="Hubungkan dompet creator untuk mengelola token Anda.">{(user) => <CreatorTokens user={user} />}</WalletGate>
+      <WalletGate reason="Connect your creator wallet to manage your tokens.">{(user) => <CreatorTokens user={user} />}</WalletGate>
     </div>
   );
 }
@@ -36,7 +36,7 @@ function CreatorTokens({ user }: { user: Address }) {
   if (!data?.length)
     return (
       <Empty>
-        Belum ada token yang Anda buat atau kelola. <Link href="/launch" className="text-accent">Launch token</Link>
+        You have not created or managed any tokens yet. <Link href="/launch" className="text-accent">Launch a token</Link>
       </Empty>
     );
   return (
@@ -78,7 +78,7 @@ function CreatorTokenCard({ token: t, user }: { token: Token; user: Address }) {
           </Link>
           <div className="font-mono text-xs text-muted">${t.symbol}</div>
         </div>
-        {!isAdmin && <Badge tone="danger">Admin sudah pindah lewat CTO</Badge>}
+        {!isAdmin && <Badge tone="danger">Admin moved via CTO</Badge>}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -86,15 +86,15 @@ function CreatorTokenCard({ token: t, user }: { token: Token; user: Address }) {
           <CardTitle>Payout</CardTitle>
           <dl className="tabular space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">Bisa diklaim</dt>
+              <dt className="text-muted">Claimable</dt>
               <dd className="font-semibold text-accent">{CONTRACTS_READY ? `${formatEth(owedWei, 5)} ETH` : "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">Total porsi creator</dt>
+              <dt className="text-muted">Total creator share</dt>
               <dd>{formatEth(t.creatorFees)} ETH</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">Sudah diklaim</dt>
+              <dt className="text-muted">Claimed so far</dt>
               <dd>{formatEth(t.creatorClaimed)} ETH</dd>
             </div>
           </dl>
@@ -103,14 +103,14 @@ function CreatorTokenCard({ token: t, user }: { token: Token; user: Address }) {
             disabled={!CONTRACTS_READY || !claimTx.ready || owedWei === 0n || claimTx.busy}
             onClick={() => claimTx.send((write) => write({ address: t.vault, abi: FeeVaultAbi, functionName: "claimCreator" }))}
           >
-            Klaim payout
+            Claim payout
           </Button>
           <TxNotice status={claimTx.status} hash={claimTx.hash} error={claimTx.error} />
-          <p className="text-xs text-muted">Fee yang belum dibagi perlu distribute() dulu (tombol di halaman token).</p>
+          <p className="text-xs text-muted">Undistributed fees need a distribute() call first (button on the token page).</p>
         </div>
 
         <div className="space-y-3">
-          <CardTitle>Ubah pembagian fee</CardTitle>
+          <CardTitle>Change fee split</CardTitle>
           <FeeSliders value={draft} onChange={setDraft} />
           <Button
             variant="secondary"
@@ -120,42 +120,42 @@ function CreatorTokenCard({ token: t, user }: { token: Token; user: Address }) {
               configTx.send((write) => write({ address: t.vault, abi: FeeVaultAbi, functionName: "queueConfig", args: [draft] }))
             }
           >
-            {pending ? "Ganti antrean (timelock mulai ulang)" : "Antrekan perubahan (24 jam)"}
+            {pending ? "Replace queued change (restarts timelock)" : "Queue change (24h)"}
           </Button>
         </div>
 
         <div className="space-y-3">
           <CardTitle>Status</CardTitle>
           <p className="text-sm">
-            Aktif: buyback {pct(t.buybackBps)} · reward {pct(t.rewardBps)} · creator {pct(10_000 - t.buybackBps - t.rewardBps)}
+            Active: buyback {pct(t.buybackBps)} · rewards {pct(t.rewardBps)} · creator {pct(10_000 - t.buybackBps - t.rewardBps)}
           </p>
           {pending ? (
             <div className="rounded-xl border border-violet-400/30 bg-violet-400/5 p-3 text-sm">
               <div className="mb-1 flex items-center justify-between">
-                <span className="font-medium">Mengantre</span>
-                <Badge tone="violet">{left ?? "siap diterapkan"}</Badge>
+                <span className="font-medium">Queued</span>
+                <Badge tone="violet">{left ?? "ready to apply"}</Badge>
               </div>
               <p className="text-muted">
-                buyback {pct(t.pendingBuybackBps ?? 0)} · reward {pct(t.pendingRewardBps ?? 0)}
+                buyback {pct(t.pendingBuybackBps ?? 0)} · rewards {pct(t.pendingRewardBps ?? 0)}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button
                   disabled={!CONTRACTS_READY || !configTx.ready || Boolean(left) || configTx.busy}
                   onClick={() => configTx.send((write) => write({ address: t.vault, abi: FeeVaultAbi, functionName: "applyConfig" }))}
                 >
-                  Terapkan
+                  Apply
                 </Button>
                 <Button
                   variant="danger"
                   disabled={!CONTRACTS_READY || !configTx.ready || !isAdmin || configTx.busy}
                   onClick={() => configTx.send((write) => write({ address: t.vault, abi: FeeVaultAbi, functionName: "cancelConfig" }))}
                 >
-                  Batalkan
+                  Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted">Tidak ada perubahan yang mengantre.</p>
+            <p className="text-sm text-muted">No change queued.</p>
           )}
           <TxNotice status={configTx.status} hash={configTx.hash} error={configTx.error} />
           <div className="pt-2">
