@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
-import { chain } from "@/lib/config";
+import { chain, SOCIAL } from "@/lib/config";
 import { ConnectButton } from "./ConnectButton";
+import { XIcon } from "./XIcon";
 import { cn } from "./ui";
 
 const NAV = [
@@ -81,6 +82,16 @@ export function Header() {
           <Nav />
         </nav>
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <a
+            href={SOCIAL.x.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Pontoon on X (${SOCIAL.x.handle})`}
+            title={SOCIAL.x.handle}
+            className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface/60 text-muted transition-colors hover:border-accent/40 hover:text-ink"
+          >
+            <XIcon />
+          </a>
           <span className="hidden items-center gap-1.5 rounded-full border border-line bg-surface/60 px-2.5 py-1 text-[11px] text-muted xl:flex">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400" />
             {chain.name}
