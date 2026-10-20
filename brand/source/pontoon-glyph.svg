@@ -1,0 +1,15 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="cut">
+      <rect width="100" height="100" fill="#fff"/>
+      <rect x="33" y="34" width="14" height="11" rx="3" fill="#000"/>
+      <rect x="60.5" y="45" width="9" height="7" rx="2.5" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#cut)" fill="#04211d">
+    <rect x="27" y="27" width="26" height="33" rx="6"/>
+    <rect x="56" y="39" width="18" height="21" rx="5"/>
+  </g>
+  <path d="M10 59 H90 Q92 59 91 61 L81 76 Q80 78 77 78 H23 Q20 78 19 76 L9 61 Q8 59 10 59 Z" fill="#04211d"/>
+  <path d="M12 88 Q21 82.5 30 88 T48 88 T66 88 T84 88" fill="none" stroke="#04211d" stroke-width="4.5" stroke-linecap="round" opacity="0.5"/>
+</svg>
