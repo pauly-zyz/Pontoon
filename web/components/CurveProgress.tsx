@@ -1,9 +1,14 @@
 import { pct } from "@/lib/format";
-import { Badge } from "./ui";
 
 /** Progress toward graduation; turns into a badge once graduated to Uniswap V4. */
 export function CurveProgress({ bps, graduated, compact }: { bps: number; graduated: boolean; compact?: boolean }) {
-  if (graduated) return <Badge tone="accent">✓ Graduated · Uniswap V4</Badge>;
+  if (graduated)
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-300">
+        <span>🎓 Graduated</span>
+        <span className="text-emerald-300/70">Uniswap V4</span>
+      </div>
+    );
   const value = Math.min(Math.max(bps, 0), 10_000);
   const near = value >= 8_000;
   return (
@@ -23,7 +28,11 @@ export function CurveProgress({ bps, graduated, compact }: { bps: number; gradua
         aria-valuenow={value / 100}
       >
         <div
-          className={near ? "h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500" : "h-full rounded-full bg-accent"}
+          className={
+            near
+              ? "shimmer relative h-full overflow-hidden rounded-full bg-gradient-to-r from-amber-300 via-orange-400 to-rose-500"
+              : "h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-300"
+          }
           style={{ width: `${value / 100}%` }}
         />
       </div>

@@ -78,8 +78,8 @@ export function TxFeed({ items, loading, showToken = true }: { items?: Activity[
         const k = KIND[a.kind] ?? { label: a.kind, color: "bg-slate-500" };
         const sym = a.token ? symbols.get(a.token.toLowerCase()) : undefined;
         return (
-          <li key={a.id} className="flex items-start gap-3 py-2.5">
-            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${k.color}`} aria-hidden />
+          <li key={a.id} className="animate-fade-up flex items-start gap-3 py-2.5">
+            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${k.color} shadow-[0_0_10px] shadow-current`} aria-hidden />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
                 <span className="font-medium">{k.label}</span>

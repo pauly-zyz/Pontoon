@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MockBanner } from "@/components/MockBanner";
 import "./globals.css";
@@ -23,9 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <MockBanner />
           <Header />
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
-          <footer className="border-t border-line px-4 py-6 text-center text-xs text-muted sm:px-6">
-            Pontoon · dibangun di atas Pons V2 di Robinhood Chain · bukan nasihat keuangan
-          </footer>
+          <Footer />
         </Providers>
       </body>
     </html>

@@ -10,7 +10,7 @@ import { PriceChart } from "../PriceChart";
 import { ConfigCard } from "../token/ConfigCard";
 import { BuybackPanel, StakingPanel, TradePanel, VaultPanel } from "../token/panels";
 import { QuoteBadge } from "../TokenCard";
-import { TokenAvatar } from "../TokenAvatar";
+import { TokenAvatar, tokenHue } from "../TokenAvatar";
 import { TxFeed } from "../TxFeed";
 import { AddressLink, Badge, Card, CardTitle, Empty, ErrorBox, Skeleton, Stat, TxLink } from "../ui";
 
@@ -45,6 +45,7 @@ export function TokenSkeleton() {
 function TokenBody({ detail }: { detail: TokenDetail }) {
   const { token: t } = detail;
   const meta = parseMetadata(t.metadataURI);
+  const hue = tokenHue(t.address);
   const now = useNow();
   const trades = useTrades(t.address);
   const activity = useActivity({ token: t.address, limit: 15 });
@@ -60,39 +61,61 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start gap-4">
-        <TokenAvatar symbol={t.symbol} address={t.address} image={meta.image} size={64} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-3xl font-bold tracking-tight">{t.name}</h1>
-            <span className="font-mono text-muted">${t.symbol}</span>
-            <QuoteBadge quoteAsset={t.quoteAsset} />
-            {t.isMemestock && <Badge tone="amber">Memestock</Badge>}
-            {t.graduated && <Badge tone="accent">Graduated</Badge>}
-          </div>
-          {meta.description && <p className="mt-1 max-w-2xl text-sm text-muted">{meta.description}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-            <span>
-              Token <AddressLink address={t.address} />
-            </span>
-            <span>
-              Creator <AddressLink address={t.creator} />
-            </span>
-            {t.admin.toLowerCase() !== t.creator.toLowerCase() && (
+      <header className="glass relative overflow-hidden rounded-3xl p-6 sm:p-8">
+        <div
+          className="pointer-events-none absolute -top-24 -left-10 h-72 w-72 rounded-full opacity-40 blur-[90px]"
+          style={{ background: `hsl(${hue} 80% 55%)` }}
+        />
+        <div
+          className="pointer-events-none absolute -right-10 -bottom-24 h-64 w-64 rounded-full opacity-25 blur-[90px]"
+          style={{ background: `hsl(${(hue + 70) % 360} 80% 55%)` }}
+        />
+        <div className="relative flex flex-wrap items-start gap-5">
+          <TokenAvatar symbol={t.symbol} address={t.address} image={meta.image} size={76} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.name}</h1>
+              <span className="font-mono text-lg text-muted">${t.symbol}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <QuoteBadge quoteAsset={t.quoteAsset} />
+              {t.isMemestock && <Badge tone="amber">Memestock</Badge>}
+              {t.graduated ? <Badge tone="accent">🎓 Graduated · Uniswap V4</Badge> : <Badge>Bonding curve</Badge>}
+            </div>
+            {meta.description && <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink/80">{meta.description}</p>}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
               <span>
-                Admin (CTO) <AddressLink address={t.admin} />
+                Token <AddressLink address={t.address} />
               </span>
-            )}
-            <span>
-              Vault <AddressLink address={t.vault} />
-            </span>
-            {now && <span>Diluncurkan {timeAgo(t.launchedAt, now)}</span>}
-            {links.map(([label, u]) => (
-              <a key={label} href={u!} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                {label} ↗
-              </a>
-            ))}
+              <span>
+                Creator <AddressLink address={t.creator} />
+              </span>
+              {t.admin.toLowerCase() !== t.creator.toLowerCase() && (
+                <span>
+                  Admin (CTO) <AddressLink address={t.admin} />
+                </span>
+              )}
+              <span>
+                Vault <AddressLink address={t.vault} />
+              </span>
+              {now && <span>Diluncurkan {timeAgo(t.launchedAt, now)}</span>}
+            </div>
           </div>
+          {links.length > 0 && (
+            <div className="flex gap-2">
+              {links.map(([label, u]) => (
+                <a
+                  key={label}
+                  href={u!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium transition-colors hover:border-accent/50 hover:text-accent"
+                >
+                  {label} ↗
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 

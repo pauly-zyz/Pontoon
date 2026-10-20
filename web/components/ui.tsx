@@ -7,7 +7,7 @@ export function cn(...c: (string | false | null | undefined)[]) {
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-2xl border border-line bg-surface/80 p-5", className)}>{children}</section>;
+  return <section className={cn("glass rounded-2xl p-5", className)}>{children}</section>;
 }
 
 export function CardTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
@@ -23,7 +23,7 @@ export function PageTitle({ title, subtitle, aside }: { title: string; subtitle?
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-5xl">{title}</h1>
         {subtitle && <p className="mt-2 max-w-2xl text-sm text-muted">{subtitle}</p>}
       </div>
       {aside}
@@ -33,9 +33,10 @@ export function PageTitle({ title, subtitle, aside }: { title: string; subtitle?
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface/80 p-4">
-      <div className="text-xs font-medium uppercase tracking-wider text-muted">{label}</div>
-      <div className="tabular mt-1.5 font-display text-2xl font-semibold">{value}</div>
+    <div className="glass group relative overflow-hidden rounded-2xl p-4">
+      <div className="pointer-events-none absolute -top-12 -right-12 h-28 w-28 rounded-full bg-accent/10 blur-2xl transition-opacity group-hover:opacity-100 sm:opacity-60" />
+      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{label}</div>
+      <div className="tabular mt-2 font-display text-2xl font-semibold sm:text-[1.7rem]">{value}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </div>
   );
@@ -58,7 +59,8 @@ export function Badge({ children, tone = "default" }: { children: ReactNode; ton
 }
 
 const buttonVariants = {
-  primary: "bg-accent text-accent-ink hover:bg-teal-300 disabled:bg-accent/30 disabled:text-accent-ink/60",
+  primary:
+    "bg-gradient-to-r from-teal-300 to-accent text-accent-ink shadow-[0_8px_24px_-8px_rgb(45_212_191/0.6)] hover:brightness-110 disabled:from-accent/30 disabled:to-accent/30 disabled:text-accent-ink/60 disabled:shadow-none",
   secondary: "border border-line bg-surface-2 text-ink hover:border-accent/40 disabled:opacity-50",
   ghost: "text-muted hover:text-ink disabled:opacity-50",
   danger: "border border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20 disabled:opacity-50",
@@ -91,7 +93,7 @@ export function Tabs<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div role="tablist" className="inline-flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
+    <div role="tablist" className="inline-flex flex-wrap gap-1 rounded-xl border border-white/5 bg-surface/70 p-1 backdrop-blur">
       {tabs.map((t) => (
         <button
           key={t.value}
@@ -100,7 +102,9 @@ export function Tabs<T extends string>({
           onClick={() => onChange(t.value)}
           className={cn(
             "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            value === t.value ? "bg-surface-2 text-ink shadow-inner" : "text-muted hover:text-ink",
+            value === t.value
+              ? "bg-gradient-to-b from-white/[0.1] to-white/[0.04] text-ink shadow-[0_1px_0_rgb(255_255_255/0.08)_inset,0_4px_12px_-4px_rgb(0_0_0/0.6)]"
+              : "text-muted hover:text-ink",
           )}
         >
           {t.label}

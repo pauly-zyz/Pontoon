@@ -15,6 +15,16 @@ import { Badge, Button, Card, CardTitle, cn, Field, inputClass, PageTitle } from
 
 const MAX_META_BYTES = 2_000;
 
+function Step({ n }: { n: number }) {
+  return (
+    <span className="mr-2.5 inline-grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-teal-300 to-accent align-middle text-xs font-bold text-accent-ink">
+      {n}
+    </span>
+  );
+}
+
+const QUOTE_ICON: Record<string, string> = { ETH: "◆", USDG: "$", NVDA: "▲", AAPL: "●", HOOD: "🪶" };
+
 export function LaunchView() {
   const router = useRouter();
   const tx = useTx();
@@ -125,7 +135,10 @@ export function LaunchView() {
       <form onSubmit={submit} className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <Card>
-            <CardTitle>Identitas</CardTitle>
+            <CardTitle>
+              <Step n={1} />
+              Identitas
+            </CardTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nama">
                 <input className={inputClass} value={form.name} onChange={set("name")} placeholder="Pontoon Dog" maxLength={32} />
@@ -152,7 +165,10 @@ export function LaunchView() {
           </Card>
 
           <Card>
-            <CardTitle>Quote pair</CardTitle>
+            <CardTitle>
+              <Step n={2} />
+              Quote pair
+            </CardTitle>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {QUOTE_PAIRS.map((q) => {
                 const enabled = isAllowed(q.key) && (q.key === "ETH" || Boolean(q.address) || !CONTRACTS_READY);
@@ -167,10 +183,15 @@ export function LaunchView() {
                     }}
                     className={cn(
                       "rounded-xl border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-                      quoteKey === q.key ? "border-accent bg-accent/10" : "border-line bg-bg/40 hover:border-accent/40",
+                      quoteKey === q.key
+                        ? "border-accent bg-accent/10 shadow-[0_0_24px_-8px_rgb(45_212_191/0.7)]"
+                        : "border-line bg-bg/40 hover:-translate-y-0.5 hover:border-accent/40",
                     )}
                   >
-                    <div className="font-mono font-semibold">{q.label}</div>
+                    <div className="flex items-center gap-1.5 font-mono font-semibold">
+                      <span className="text-accent">{QUOTE_ICON[q.key]}</span>
+                      {q.label}
+                    </div>
                     <div className="text-[11px] text-muted">
                       {q.kind === "native" ? "Native" : q.kind === "stable" ? "Stablecoin" : "Saham ter-tokenisasi"}
                     </div>
@@ -191,7 +212,10 @@ export function LaunchView() {
           </Card>
 
           <Card>
-            <CardTitle>Pembagian fee</CardTitle>
+            <CardTitle>
+              <Step n={3} />
+              Pembagian fee
+            </CardTitle>
             <FeeSliders value={fee} onChange={setFee} />
           </Card>
         </div>

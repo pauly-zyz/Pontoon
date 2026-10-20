@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
+import { chain } from "@/lib/config";
 import { ConnectButton } from "./ConnectButton";
 import { cn } from "./ui";
 
@@ -20,7 +21,7 @@ const NAV = [
 export function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-      <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden>
+      <svg viewBox="0 0 32 32" className="h-8 w-8 drop-shadow-[0_0_12px_rgb(45_212_191/0.55)]" aria-hidden>
         <rect width="32" height="32" rx="9" fill="#2dd4bf" />
         <path d="M6 19h20l-3 5H9z" fill="#04211d" />
         <path d="M9 17V9h7v8M18 17v-5h5v5" stroke="#04211d" strokeWidth="2.2" fill="none" strokeLinejoin="round" />
@@ -43,7 +44,9 @@ function NavLinks({ path, mobile, onNavigate }: { path: string | null; mobile?: 
           className={cn(
             "rounded-lg text-sm font-medium transition-colors",
             mobile ? "px-3 py-2" : "px-3 py-1.5",
-            isActive(n.href) ? "bg-surface-2 text-ink" : "text-muted hover:text-ink",
+            isActive(n.href)
+              ? "bg-white/[0.06] text-ink shadow-[inset_0_-2px_0_var(--color-accent)]"
+              : "text-muted hover:bg-white/[0.03] hover:text-ink",
           )}
         >
           {n.label}
@@ -70,13 +73,18 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bg/80 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-white/5 bg-bg/60 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
         <Logo />
         <nav className="hidden flex-1 items-center gap-1 lg:flex">
           <Nav />
         </nav>
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <span className="hidden items-center gap-1.5 rounded-full border border-line bg-surface/60 px-2.5 py-1 text-[11px] text-muted xl:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400" />
+            {chain.name}
+          </span>
           <ConnectButton />
           <button
             className="rounded-lg border border-line p-2 text-muted lg:hidden"
