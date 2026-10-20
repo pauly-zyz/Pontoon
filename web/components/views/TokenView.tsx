@@ -12,6 +12,7 @@ import { BuybackPanel, StakingPanel, TradePanel, VaultPanel } from "../token/pan
 import { QuoteBadge } from "../TokenCard";
 import { TokenAvatar, tokenHue } from "../TokenAvatar";
 import { TxFeed } from "../TxFeed";
+import { UsdValue } from "../UsdValue";
 import { AddressLink, Badge, Card, CardTitle, Empty, ErrorBox, Skeleton, Stat, TxLink } from "../ui";
 
 export function TokenView({ address }: { address: string }) {
@@ -120,8 +121,8 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
       </header>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Market cap" value={`${formatEth(t.marketCapEth, 2)} ETH`} />
-        <Stat label="24h volume" value={`${formatEth(detail.volume24h, 2)} ETH`} hint={`${detail.trades24h} trades`} />
+        <Stat label="Market cap" value={<UsdValue wei={t.marketCapEth} />} />
+        <Stat label="24h volume" value={<UsdValue wei={detail.volume24h} />} hint={`${detail.trades24h} trades`} />
         <Stat label="Buyback" value={`${formatEth(t.buybackEthSpent, 3)} ETH`} hint={`${formatTokens(t.tokensBurned)} ${t.symbol} burned`} />
         <Stat label="Holder rewards" value={`${formatEth(t.rewardsFunded, 3)} ETH`} hint={`${t.stakerCount} stakers`} />
       </section>

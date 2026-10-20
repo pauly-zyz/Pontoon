@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { quotePairOf } from "@/lib/config";
-import { formatEth, parseMetadata } from "@/lib/format";
+import { parseMetadata } from "@/lib/format";
 import type { TokenListItem } from "@/lib/types";
 import { CurveProgress } from "./CurveProgress";
 import { TokenAvatar, tokenHue } from "./TokenAvatar";
 import { Badge } from "./ui";
+import { UsdValue } from "./UsdValue";
 
 export function QuoteBadge({ quoteAsset }: { quoteAsset: string }) {
   const q = quotePairOf(quoteAsset);
@@ -45,11 +46,15 @@ export function TokenCard({ token, rank }: { token: TokenListItem; rank?: number
       <dl className="tabular relative grid grid-cols-2 gap-2 rounded-xl bg-bg/40 p-3 text-xs">
         <div>
           <dt className="text-muted">Market cap</dt>
-          <dd className="mt-0.5 font-display text-sm font-semibold">{formatEth(token.marketCapEth, 2)} ETH</dd>
+          <dd className="mt-0.5 font-display text-sm font-semibold">
+            <UsdValue wei={token.marketCapEth} />
+          </dd>
         </div>
         <div>
           <dt className="text-muted">24h volume</dt>
-          <dd className="mt-0.5 font-display text-sm font-semibold">{formatEth(token.volume24h, 2)} ETH</dd>
+          <dd className="mt-0.5 font-display text-sm font-semibold">
+            <UsdValue wei={token.volume24h} />
+          </dd>
         </div>
       </dl>
       <div className="relative mt-auto">

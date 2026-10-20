@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatEther } from "viem";
 import { useActivity, useStats, useTokens } from "@/lib/api";
 import { USE_MOCK } from "@/lib/config";
+import { formatUsd, useEthUsd } from "@/lib/price";
 import type { TokenTab } from "@/lib/types";
 import { CountUp } from "../CountUp";
 import { FeeFlow } from "../FeeFlow";
@@ -120,6 +121,7 @@ export function HomeView() {
   const stats = useStats();
   const activity = useActivity({ limit: 12 });
   const s = stats.data;
+  const ethUsd = useEthUsd();
 
   return (
     <div className="space-y-10">
@@ -132,7 +134,21 @@ export function HomeView() {
         <ErrorBox error={stats.error} />
       ) : (
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="24h volume" value={s ? <CountUp value={eth(s.volume24h)} format={fmtEth} /> : "…"} hint={s && `${s.trades24h} trades`} />
+          <Stat
+            label="24h volume"
+            value={
+              s ? (
+                ethUsd ? (
+                  <CountUp value={eth(s.volume24h) * ethUsd} format={formatUsd} />
+                ) : (
+                  <CountUp value={eth(s.volume24h)} format={fmtEth} />
+                )
+              ) : (
+                "…"
+              )
+            }
+            hint={s && `${s.trades24h} trades`}
+          />
           <Stat
             label="Tokens launched"
             value={s ? <CountUp value={s.tokensLaunched} format={fmtInt} /> : "…"}
