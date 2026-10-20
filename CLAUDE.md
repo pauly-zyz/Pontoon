@@ -11,8 +11,10 @@ stakers. Full product spec: `spec.md`.
   `src/interfaces/IPonsV2.sol` until the real ABI is available.
 - `indexer/` — Ponder 0.18. Indexes every Pontoon event plus Pons V2 `Graduated`/`Trade`, serves the
   REST API the web app uses.
-- `web/` — Next.js 16 (App Router) + Tailwind 4 + wagmi/viem/RainbowKit. Runs on dummy data when
-  `NEXT_PUBLIC_INDEXER_URL` is empty. Deployed on Vercel (project root directory: `web`).
+- `web/` — Next.js 16 (App Router) + Tailwind 4 + wagmi/viem/RainbowKit. Deployed on Vercel (project
+  root directory: `web`). With `NEXT_PUBLIC_INDEXER_URL` empty it runs in pre-launch mode (Robinhood
+  Chain mainnet, real but empty data, "launching soon" banner). Sample data only with
+  `NEXT_PUBLIC_DEMO_DATA=true`, for local work; never ship fake data to production.
 
 ## Commands
 

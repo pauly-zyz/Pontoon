@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { parseEther, parseEventLogs, zeroAddress } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { PontoonLauncherAbi } from "@/lib/abis/PontoonLauncherAbi";
-import { contracts, CONTRACTS_READY, PARAMS, QUOTE_PAIRS } from "@/lib/config";
+import { contracts, CONTRACTS_READY, PARAMS, PRE_LAUNCH, QUOTE_PAIRS } from "@/lib/config";
 import { encodeMetadata, safeUrl } from "@/lib/format";
 import { useTx } from "@/lib/tx";
 import { FeePreview, FeeSliders, type FeeConfigState } from "../FeeSliders";
@@ -252,7 +252,7 @@ export function LaunchView() {
               </ul>
             )}
             <Button type="submit" className="mt-5 w-full py-3" disabled={!CONTRACTS_READY || !tx.ready || errors.length > 0 || tx.busy}>
-              {!CONTRACTS_READY ? "Deploy (disabled in demo mode)" : !tx.ready ? "Connect your wallet first" : tx.busy ? "Processing…" : "Deploy token"}
+              {!CONTRACTS_READY ? (PRE_LAUNCH ? "Launching soon" : "Contracts not configured") : !tx.ready ? "Connect your wallet first" : tx.busy ? "Processing…" : "Deploy token"}
             </Button>
             <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
           </Card>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatEther } from "viem";
 import { useActivity, useStats, useTokens } from "@/lib/api";
-import { USE_MOCK } from "@/lib/config";
+import { CONTRACTS_READY, PRE_LAUNCH } from "@/lib/config";
 import { formatUsd, useEthUsd } from "@/lib/price";
 import type { TokenTab } from "@/lib/types";
 import { CountUp } from "../CountUp";
@@ -30,7 +30,19 @@ export function TokenGrid({ tab, quote }: { tab: TokenTab; quote?: string }) {
         {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-60" />)}
       </div>
     );
-  if (!data?.length) return <Empty>No tokens here yet.</Empty>;
+  if (!data?.length)
+    return (
+      <Empty>
+        {PRE_LAUNCH ? (
+          <>
+            <span className="block font-display text-base font-semibold text-ink">No tokens yet</span>
+            <span className="mt-1 block">Pontoon is launching soon on Robinhood Chain. The first tokens will appear here.</span>
+          </>
+        ) : (
+          "No tokens here yet."
+        )}
+      </Empty>
+    );
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {data.map((t, i) => (
@@ -78,7 +90,7 @@ function Hero() {
               href="/launch"
               className="rounded-xl bg-gradient-to-r from-teal-300 to-accent px-6 py-3 text-sm font-semibold text-accent-ink shadow-[0_10px_30px_-10px_rgb(45_212_191/0.8)] transition hover:brightness-110"
             >
-              Launch token →
+              {CONTRACTS_READY ? "Launch token →" : "Launch token — coming soon"}
             </Link>
             <Link
               href="/docs"
@@ -126,9 +138,7 @@ export function HomeView() {
   return (
     <div className="space-y-10">
       <Hero />
-      <div className="-mx-4 -mt-10 sm:-mx-6">
-        <Ticker />
-      </div>
+      <Ticker />
 
       {stats.error ? (
         <ErrorBox error={stats.error} />
@@ -157,7 +167,7 @@ export function HomeView() {
           <Stat label="Total buyback" value={s ? <CountUp value={eth(s.totalBuybackEth)} format={fmtEth} /> : "…"} hint="ETH spent buying tokens" />
           <Stat
             label="Total burn"
-            value={s ? <CountUp value={s.buybackCount} format={(n) => `${fmtInt(n)}×`} /> : "…"}
+            value={s ? <CountUp value={s.buybackCount} format={(n) => (Math.round(n) === 0 ? "0" : `${fmtInt(n)}×`)} /> : "…"}
             hint="buyback-and-burns to 0x…dEaD"
           />
         </section>
@@ -179,13 +189,15 @@ export function HomeView() {
           <Card className="lg:sticky lg:top-24">
             <CardTitle
               aside={
-                <span className="flex items-center gap-1.5 text-[11px] font-medium text-accent">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping-soft absolute inline-flex h-full w-full rounded-full bg-accent" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                !PRE_LAUNCH && (
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-accent">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping-soft absolute inline-flex h-full w-full rounded-full bg-accent" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                    </span>
+                    Live
                   </span>
-                  {USE_MOCK ? "Demo" : "Live"}
-                </span>
+                )
               }
             >
               Latest activity

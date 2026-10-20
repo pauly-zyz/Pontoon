@@ -3,15 +3,21 @@ import { defineChain, type Address, zeroAddress } from "viem";
 // NEXT_PUBLIC_* values are inlined at build time, so each one must be referenced literally.
 const env = {
   indexerUrl: process.env.NEXT_PUBLIC_INDEXER_URL ?? "",
-  chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID || 31337),
+  // Defaults: Robinhood Chain mainnet. Override all four for testnet or a local chain.
+  chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID || 4663),
   chainName: process.env.NEXT_PUBLIC_CHAIN_NAME || "Robinhood Chain",
-  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545",
-  explorerUrl: process.env.NEXT_PUBLIC_EXPLORER_URL ?? "",
+  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.mainnet.chain.robinhood.com",
+  explorerUrl: process.env.NEXT_PUBLIC_EXPLORER_URL || "https://robinhoodchain.blockscout.com",
   walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
 };
 
-/** Without an indexer URL the site runs on dummy data and contract writes are disabled. */
-export const USE_MOCK = env.indexerUrl === "";
+/**
+ * No indexer configured yet: pre-launch mode. The site shows real (empty) data, a "launching soon"
+ * notice, and contract writes are disabled until addresses are set.
+ */
+export const PRE_LAUNCH = env.indexerUrl === "";
+/** Sample data for local design work only (NEXT_PUBLIC_DEMO_DATA=true). Never enable in production. */
+export const USE_MOCK = PRE_LAUNCH && process.env.NEXT_PUBLIC_DEMO_DATA === "true";
 export const INDEXER_URL = env.indexerUrl.replace(/\/$/, "");
 export const WALLETCONNECT_PROJECT_ID = env.walletConnectProjectId;
 export const EXPLORER_URL = env.explorerUrl.replace(/\/$/, "");

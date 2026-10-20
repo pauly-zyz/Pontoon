@@ -112,7 +112,7 @@ export default function DocsPage() {
           {addresses.map(([name, a]) => (
             <li key={name} className="flex flex-wrap justify-between gap-2">
               <span className="text-muted">{name}</span>
-              <span className="font-mono text-xs break-all">{a ?? "not set"}</span>
+              <span className="font-mono text-xs break-all">{a ?? "not deployed yet"}</span>
             </li>
           ))}
         </ul>

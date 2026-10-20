@@ -115,7 +115,7 @@ export function TreasuryView() {
               ).map(([name, a]) => (
                 <li key={name} className="flex justify-between">
                   <span className="text-muted">{name}</span>
-                  {a ? <AddressLink address={a} /> : <span className="text-xs text-muted">not set</span>}
+                  {a ? <AddressLink address={a} /> : <span className="text-xs text-muted">not deployed yet</span>}
                 </li>
               ))}
             </ul>
