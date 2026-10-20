@@ -4,12 +4,16 @@
 | --- | --- | --- |
 | `pontoon-logo-1000.png` | 1000×1000 (1:1) | Profile picture / token logo (X, DexScreener, wallets) |
 | `pontoon-logo-500.png` | 500×500 (1:1) | Same, smaller file |
-| `pontoon-banner-1500x500.png` | 1500×500 (3:1) | X header and DexScreener banner |
+| `pontoon-banner-1500x500.png` | 1500×500 (3:1) | X header and DexScreener banner (original) |
+| `banners/pontoon-banner-1-fee-flow.png` | 1500×500 (3:1) | "Fees that flow back to holders": the fee-flow diagram |
+| `banners/pontoon-banner-2-night-sail.png` | 1500×500 (3:1) | Illustrated boat on a moonlit sea |
+| `banners/pontoon-banner-3-buy-burn-reward.png` | 1500×500 (3:1) | Bold "Buy. Burn. Reward." with token cards |
+| `banners/pontoon-banner-4-launching-soon.png` | 1500×500 (3:1) | Minimal centered "Launching soon" for pre-launch |
 
 All files are PNG and well under 4.5 MB.
 
 - The logo keeps the boat inside the center circle, so circular crops (X, DexScreener) never cut it.
-- The banner leaves the bottom-left corner empty because the X profile picture overlaps it there.
+- Every banner leaves the bottom-left corner empty because the X profile picture overlaps it there.
 
 ## Editing
 
