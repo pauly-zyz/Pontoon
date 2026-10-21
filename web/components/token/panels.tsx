@@ -291,7 +291,8 @@ export function VaultPanel({ token }: { token: Token }) {
       </Button>
       <p className="mt-2 text-xs text-muted">
         Anyone can call it. It collects this token&apos;s trading fees from Pons V2 and splits them. The caller earns 0.5%
-        (max 0.005 ETH).
+        (max 0.005 ETH). Pons releases a token&apos;s curve fees once about 0.0035 ETH has built up (roughly 0.09 ETH of
+        trading).
       </p>
       <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
     </Card>
