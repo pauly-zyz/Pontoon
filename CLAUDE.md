@@ -39,7 +39,8 @@ stakers. Full product spec: `spec.md`.
   `OFFICIAL_MAINNET` in `web/lib/config.ts`). All of them (and the paused first set) are owned by the
   2-of-3 Safe 0x9dE492BBB16ea6D382f60fC3b6E9403fFA249993 (owners 0x99D4…5108, 0x9b82…7e9a, 0xF4Ec…Cdc3); the
   deployer wallet 0x52fE…C8C1 has no admin rights left. Every admin change needs a Safe transaction. The
-  contracts are verified on Blockscout (`contracts/verify/`). The large fee-flow smoke test was skipped. Creators pick their creator tax at launch (1–10%; min and default 1%, the owner can change
+  contracts are verified on Blockscout (`contracts/verify/`). The large fee-flow smoke test was skipped.
+  Creators pick their creator tax at launch (1–10%; min and default 1%, the owner can change
   them with `setCreatorTaxBounds`; the max is the Pons V2 maximum). The first official set (launcher
   0xF322…41eC, never used) is paused. The indexer defaults to the official addresses on chain 4663.
   Launches open on the site as soon as `NEXT_PUBLIC_INDEXER_URL` is set in Vercel; until then
