@@ -125,3 +125,10 @@ export function quoteFilterAddress(key: string): Address | undefined {
 export const SOCIAL = {
   x: { url: "https://x.com/PontoonFamily", handle: "@PontoonFamily" },
 };
+
+/** Official Pontoon token ($PONTOON), launched on Pons V2. Shown in the hero and footer. */
+export const OFFICIAL_TOKEN = {
+  name: "Pontoon",
+  symbol: "PONTOON",
+  address: "0x172eBBE24234F6372aE2A8c59280e27d236ff177" as Address,
+};
