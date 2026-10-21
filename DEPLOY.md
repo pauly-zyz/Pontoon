@@ -47,3 +47,10 @@ turns off automatically once `NEXT_PUBLIC_INDEXER_URL` is set.
 - [ ] One real launch from the website with a small initial buy, then a buy and a sell.
 - [ ] The token shows up via the indexer; market cap and volume are in USD.
 - [ ] Owner approval, then announce on https://x.com/PontoonFamily.
+
+## Verification and multisig (after the first deploy)
+
+- Verify on Blockscout: `contracts/script/verify-blockscout.sh`, or by hand with
+  `contracts/verify/pontoon-standard-input.json` (see `contracts/verify/README.md`).
+- Move ownership to a Safe: `contracts/script/TransferToSafe.s.sol` creates a Safe 1.4.1 (threshold at
+  least 2) and transfers every official contract to it, including the paused first set.
