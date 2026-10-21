@@ -37,17 +37,33 @@ function addr(value: string | undefined): Address | undefined {
 
 export const PONS_FACTORY_MAINNET: Address = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 
+/** Official Pontoon deployment on Robinhood Chain mainnet (contracts/deployments/4663.json). */
+export const OFFICIAL_MAINNET = {
+  launcher: "0xF322fACa574c05138c30D31997E6ABF03d6441eC",
+  registry: "0xc7D03457D9171d0645B19A1002ba855442e55232",
+  buybackExecutor: "0xE8D4c92B2868F34E56BB0dDA83D0916a76afAb9f",
+  treasury: "0x53dB0bcf8c5e003B5219bE5593a64C894851110b",
+  ctoManager: "0xaa0cAecdFa2275FCAe602b43358F43bDFa631680",
+} as const satisfies Record<string, Address>;
+
+// Env values win (local fork, testnet); on mainnet the official addresses are the default.
+const official = env.chainId === 4663 ? OFFICIAL_MAINNET : undefined;
+
 export const contracts = {
-  launcher: addr(process.env.NEXT_PUBLIC_LAUNCHER_ADDRESS),
-  registry: addr(process.env.NEXT_PUBLIC_REGISTRY_ADDRESS),
-  buybackExecutor: addr(process.env.NEXT_PUBLIC_BUYBACK_EXECUTOR_ADDRESS),
-  treasury: addr(process.env.NEXT_PUBLIC_TREASURY_ADDRESS),
-  ctoManager: addr(process.env.NEXT_PUBLIC_CTO_MANAGER_ADDRESS),
+  launcher: addr(process.env.NEXT_PUBLIC_LAUNCHER_ADDRESS) ?? official?.launcher,
+  registry: addr(process.env.NEXT_PUBLIC_REGISTRY_ADDRESS) ?? official?.registry,
+  buybackExecutor: addr(process.env.NEXT_PUBLIC_BUYBACK_EXECUTOR_ADDRESS) ?? official?.buybackExecutor,
+  treasury: addr(process.env.NEXT_PUBLIC_TREASURY_ADDRESS) ?? official?.treasury,
+  ctoManager: addr(process.env.NEXT_PUBLIC_CTO_MANAGER_ADDRESS) ?? official?.ctoManager,
   // Live Pons V2 launch factory on Robinhood Chain mainnet (override only for another network).
   ponsFactory: addr(process.env.NEXT_PUBLIC_PONS_FACTORY_ADDRESS) ?? PONS_FACTORY_MAINNET,
 };
 
-export const CONTRACTS_READY = !USE_MOCK && Boolean(contracts.launcher && contracts.registry);
+/**
+ * On-chain writes (launch, trade, stake...) need the contracts and a running indexer: without the indexer
+ * new tokens would not show on the site. Setting NEXT_PUBLIC_INDEXER_URL opens launches.
+ */
+export const CONTRACTS_READY = !USE_MOCK && !PRE_LAUNCH && Boolean(contracts.launcher && contracts.registry);
 
 export type QuotePair = { key: string; label: string; address?: Address; kind: "native" | "stable" | "stock" };
 

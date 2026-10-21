@@ -2,4 +2,5 @@ out/
 cache/
 broadcast/
 .env
-deployments/
+deployments/*
+!deployments/4663.json
