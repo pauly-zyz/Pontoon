@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseEther, parseEventLogs, zeroAddress } from "viem";
-import { useReadContract } from "wagmi";
+import { useReadContract, useReadContracts } from "wagmi";
 import { PontoonLauncherAbi } from "@/lib/abis/PontoonLauncherAbi";
 import { contracts, CONTRACTS_READY, LIVE_QUOTE_KEYS, PARAMS, PRE_LAUNCH, QUOTE_PAIRS, SOCIAL } from "@/lib/config";
 import { formatEth, safeUrl } from "@/lib/format";
@@ -39,6 +39,8 @@ const EMPTY_FORM = {
   initialBuy: "",
 };
 const DEFAULT_FEE: FeeConfigState = { buybackBps: PARAMS.defaultBuybackBps, rewardBps: PARAMS.defaultRewardBps };
+/** 150 bps -> "1.5%". */
+const taxPct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 1 : 0)}%`;
 
 const savedTime = (ms: number) =>
   new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -50,6 +52,7 @@ export function LaunchView() {
   const [quoteKey, setQuoteKey] = useState("ETH");
   const [memestock, setMemestock] = useState(false);
   const [fee, setFee] = useState<FeeConfigState>(DEFAULT_FEE);
+  const [creatorTax, setCreatorTax] = useState<number | null>(null); // null = the launcher default
   // Saved draft: restored after mount (the server never sees localStorage).
   const [draft, setDraft] = useState<{ status: "none" | "restored" | "saved" | "unsaved"; savedAt?: number }>({
     status: "none",
@@ -63,6 +66,7 @@ export function LaunchView() {
       setQuoteKey(LIVE_QUOTE_KEYS.has(d.quoteKey) ? d.quoteKey : "ETH");
       setMemestock(d.memestock);
       setFee(d.fee);
+      setCreatorTax(d.creatorTaxBps ?? null);
       setDraft({ status: "restored", savedAt: d.savedAt });
     }, 0);
     return () => clearTimeout(id);
@@ -70,7 +74,7 @@ export function LaunchView() {
 
   function saveLaunch() {
     const savedAt = Date.now();
-    const ok = saveDraft({ form, quoteKey, memestock, fee, savedAt });
+    const ok = saveDraft({ form, quoteKey, memestock, fee, creatorTaxBps: creatorTax ?? undefined, savedAt });
     setDraft(ok ? { status: "saved", savedAt } : { status: "unsaved" });
   }
 
@@ -80,6 +84,7 @@ export function LaunchView() {
     setQuoteKey("ETH");
     setMemestock(false);
     setFee(DEFAULT_FEE);
+    setCreatorTax(null);
     setDraft({ status: "none" });
   }
 
@@ -101,6 +106,20 @@ export function LaunchView() {
     query: { enabled: CONTRACTS_READY },
   });
   const launchFee = launchFeeRead.data ?? DEFAULT_LAUNCH_FEE;
+
+  // Creator tax range from the launcher (the max is the Pons V2 maximum).
+  const taxReads = useReadContracts({
+    contracts: (["minCreatorTaxBps", "defaultCreatorTaxBps", "maxCreatorTaxBps"] as const).map((functionName) => ({
+      address: contracts.launcher,
+      abi: PontoonLauncherAbi,
+      functionName,
+    })),
+    query: { enabled: CONTRACTS_READY },
+  });
+  const minTax = Number(taxReads.data?.[0]?.result ?? PARAMS.minCreatorTaxBps);
+  const defaultTax = Number(taxReads.data?.[1]?.result ?? PARAMS.defaultCreatorTaxBps);
+  const maxTax = Number(taxReads.data?.[2]?.result ?? PARAMS.maxCreatorTaxBps);
+  const taxBps = creatorTax ?? defaultTax;
   const isAllowed = (key: string) => LIVE_QUOTE_KEYS.has(key);
 
   // Stored on-chain by Pons V2 and in the Pontoon TokenMetadata event.
@@ -133,6 +152,7 @@ export function LaunchView() {
   } catch {
     errors.push("Invalid initial buy amount.");
   }
+  if (taxBps < minTax || taxBps > maxTax) errors.push(`Creator tax must be between ${taxPct(minTax)} and ${taxPct(maxTax)}.`);
   if (!isAllowed(quoteKey)) errors.push(`Quote pair ${quoteKey} is not open yet.`);
   const value = launchFee + initialBuy;
 
@@ -151,7 +171,7 @@ export function LaunchView() {
       address: launcher,
       abi: PontoonLauncherAbi,
       functionName: "launch",
-      args: [meta, quote.address ?? zeroAddress, memestock, fee],
+      args: [meta, quote.address ?? zeroAddress, memestock, fee, taxBps],
       value,
       }),
     );
@@ -263,6 +283,36 @@ export function LaunchView() {
           <Card>
             <CardTitle>
               <Step n={3} />
+              Creator tax
+            </CardTitle>
+            <label className="block">
+              <span className="mb-1 flex items-center justify-between text-sm">
+                <span className="font-medium">Tax on every curve trade</span>
+                <span className="tabular font-semibold text-accent">{taxPct(taxBps)}</span>
+              </span>
+              <input
+                type="range"
+                min={minTax}
+                max={maxTax}
+                step={10}
+                value={taxBps}
+                onChange={(e) => setCreatorTax(Number(e.target.value))}
+                className="w-full accent-teal-400"
+              />
+              <span className="flex justify-between text-xs text-muted">
+                <span>{taxPct(minTax)}</span>
+                <span>{taxPct(maxTax)}</span>
+              </span>
+            </label>
+            <p className="mt-3 text-xs leading-relaxed text-muted">
+              Paid by traders on top of the 1% curve fee and sent to your token&apos;s FeeVault, where it is split below.
+              A higher tax earns more per trade but can discourage trading. It is fixed once the token is launched.
+            </p>
+          </Card>
+
+          <Card>
+            <CardTitle>
+              <Step n={4} />
               Fee split
             </CardTitle>
             <FeeSliders value={fee} onChange={setFee} />
@@ -280,6 +330,7 @@ export function LaunchView() {
                   <span className="font-mono">${form.symbol || "TICKER"}</span>
                   <Badge tone={quote.kind === "stock" ? "violet" : "default"}>/{quote.label}</Badge>
                   {memestock && <Badge tone="amber">Memestock</Badge>}
+                  <Badge tone="default">{taxPct(taxBps)} tax</Badge>
                 </div>
               </div>
             </div>

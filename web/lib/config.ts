@@ -39,11 +39,11 @@ export const PONS_FACTORY_MAINNET: Address = "0x7eD598BcEf8bd9Edd8C97A195C6d13f4
 
 /** Official Pontoon deployment on Robinhood Chain mainnet (contracts/deployments/4663.json). */
 export const OFFICIAL_MAINNET = {
-  launcher: "0xF322fACa574c05138c30D31997E6ABF03d6441eC",
-  registry: "0xc7D03457D9171d0645B19A1002ba855442e55232",
-  buybackExecutor: "0xE8D4c92B2868F34E56BB0dDA83D0916a76afAb9f",
-  treasury: "0x53dB0bcf8c5e003B5219bE5593a64C894851110b",
-  ctoManager: "0xaa0cAecdFa2275FCAe602b43358F43bDFa631680",
+  launcher: "0x23b2f18e2C190dB01E4ae2C13157d8e82a1f548E",
+  registry: "0x94B8b52D957f2Bb4006266AfcbECE22a04c64818",
+  buybackExecutor: "0x8BCfBf71509374062f292c341ab00e9314b72784",
+  treasury: "0xC31A1F1B2fd11cD9A2E830610f7B963A27A020c8",
+  ctoManager: "0xCb9Eea98eF137cd19dC6C83AB70e97d805fCB2c3",
 } as const satisfies Record<string, Address>;
 
 // Env values win (local fork, testnet); on mainnet the official addresses are the default.
@@ -109,7 +109,10 @@ export const PARAMS = {
   maxBuybackEth: 0.5,
   // Pons V2 bonding curve
   curveFeeBps: 100,
-  creatorTaxBps: 300,
+  // Creator tax, picked by the creator at launch (PontoonLauncher min/default; max = Pons V2 maximum).
+  minCreatorTaxBps: 100,
+  defaultCreatorTaxBps: 100,
+  maxCreatorTaxBps: 1_000,
 };
 
 /** Address used to filter by quote pair: env address in live mode, dummy address in mock mode. */

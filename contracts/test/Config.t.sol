@@ -33,21 +33,21 @@ contract ConfigBoundsTest is BaseTest {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_001, 0));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_001, 0), 300);
     }
 
     function test_launch_revertsRewardAbove50() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(0, 5_001));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(0, 5_001), 300);
     }
 
     function test_launch_revertsSumAbove100() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_000, 2_001));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_000, 2_001), 300);
     }
 
     function test_queue_revertsOutOfBounds() public {

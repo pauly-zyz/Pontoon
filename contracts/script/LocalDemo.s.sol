@@ -137,7 +137,7 @@ contract LocalDemo is Script {
         uint16 rewardBps
     ) internal {
         vm.broadcast(pk);
-        (address t,) = launcher.launch{value: value}(meta, address(0), memestock, FeeConfig(buybackBps, rewardBps));
+        (address t,) = launcher.launch{value: value}(meta, address(0), memestock, FeeConfig(buybackBps, rewardBps), 300);
         tokens.push(t);
     }
 

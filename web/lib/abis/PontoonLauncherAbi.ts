@@ -113,19 +113,6 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "function",
-    "name": "creatorTaxBps",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "ctoManager",
     "inputs": [],
     "outputs": [
@@ -133,6 +120,19 @@ export const PontoonLauncherAbi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "defaultCreatorTaxBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -260,6 +260,11 @@ export const PontoonLauncherAbi = [
             "internalType": "uint16"
           }
         ]
+      },
+      {
+        "name": "creatorTaxBps",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "outputs": [
@@ -388,6 +393,32 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "function",
+    "name": "maxCreatorTaxBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "minCreatorTaxBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -479,10 +510,15 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "function",
-    "name": "setCreatorTaxBps",
+    "name": "setCreatorTaxBounds",
     "inputs": [
       {
-        "name": "bps",
+        "name": "minBps",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "defaultBps",
         "type": "uint16",
         "internalType": "uint16"
       }
@@ -575,10 +611,16 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "event",
-    "name": "CreatorTaxSet",
+    "name": "CreatorTaxBoundsSet",
     "inputs": [
       {
-        "name": "bps",
+        "name": "minBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "defaultBps",
         "type": "uint16",
         "indexed": false,
         "internalType": "uint16"
@@ -786,6 +828,22 @@ export const PontoonLauncherAbi = [
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "CreatorTaxOutOfRange",
+    "inputs": [
+      {
+        "name": "minBps",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "maxBps",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ]
   },
   {
     "type": "error",

@@ -76,7 +76,7 @@ function useCurve(token: Token) {
   const quoteReserve = reads.data?.[0]?.result;
   const tokenReserve = reads.data?.[1]?.result;
   const realQuoteReserve = reads.data?.[2]?.result ?? 0n;
-  const taxBps = BigInt(reads.data?.[3]?.result ?? PARAMS.creatorTaxBps);
+  const taxBps = BigInt(reads.data?.[3]?.result ?? PARAMS.defaultCreatorTaxBps);
   const graduated = reads.data?.[4]?.result ?? token.graduated;
   const feeBps = BigInt(PARAMS.curveFeeBps) + taxBps;
   const ready = enabled && quoteReserve !== undefined && tokenReserve !== undefined && tokenReserve > 0n;

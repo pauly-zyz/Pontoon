@@ -44,8 +44,10 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     address public immutable ctoManager;
 
     uint16 public platformFeeBps = 2_000;
-    /// @notice Pons creator tax every Pontoon token is launched with (paid on curve trades into the FeeVault).
-    uint16 public creatorTaxBps = 300;
+    /// @notice Creators pick their token's Pons creator tax (paid on curve trades into the FeeVault) between
+    ///         `minCreatorTaxBps` and the Pons maximum. `defaultCreatorTaxBps` is used by launchWithDefaultConfig.
+    uint16 public minCreatorTaxBps = 100;
+    uint16 public defaultCreatorTaxBps = 100;
     uint256 public launchConfigId; // Pons launch config (0 = standard 1B supply, 4.2 ETH graduation)
     bool public paused;
     /// @notice Allowed quote pairs. Only ETH (address(0)) is supported for now.
@@ -58,7 +60,7 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     event TokenMetadata(address indexed token, TokenMeta meta);
     event InitialBuy(address indexed token, address indexed creator, uint256 ethIn, uint256 tokensOut);
     event PlatformFeeSet(uint16 bps);
-    event CreatorTaxSet(uint16 bps);
+    event CreatorTaxBoundsSet(uint16 minBps, uint16 defaultBps);
     event LaunchConfigIdSet(uint256 id);
     event QuotePairSet(address indexed quoteAsset, bool allowed);
     event Paused(bool paused);
@@ -66,6 +68,7 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     error IsPaused();
     error QuotePairNotAllowed();
     error FeeTooHigh();
+    error CreatorTaxOutOfRange(uint16 minBps, uint16 maxBps);
     error InsufficientLaunchFee(uint256 required);
     error PonsLaunchDisabled();
 
@@ -98,11 +101,13 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         emit PlatformFeeSet(bps);
     }
 
-    /// @notice Creator tax for future launches, capped by the Pons factory's maximum.
-    function setCreatorTaxBps(uint16 bps) external onlyOwner {
-        if (bps > ponsFactory.maxCreatorTaxBps()) revert FeeTooHigh();
-        creatorTaxBps = bps;
-        emit CreatorTaxSet(bps);
+    /// @notice Lowest creator tax creators may pick, and the default, for future launches.
+    function setCreatorTaxBounds(uint16 minBps, uint16 defaultBps) external onlyOwner {
+        uint16 maxBps = maxCreatorTaxBps();
+        if (minBps > defaultBps || defaultBps > maxBps) revert CreatorTaxOutOfRange(minBps, maxBps);
+        minCreatorTaxBps = minBps;
+        defaultCreatorTaxBps = defaultBps;
+        emit CreatorTaxBoundsSet(minBps, defaultBps);
     }
 
     function setLaunchConfigId(uint256 id) external onlyOwner {
@@ -129,36 +134,51 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         return FeeConfig({buybackBps: DEFAULT_BUYBACK_BPS, rewardBps: DEFAULT_REWARD_BPS});
     }
 
+    /// @notice Highest creator tax a creator may pick: the Pons V2 factory's maximum (10% on mainnet).
+    function maxCreatorTaxBps() public view returns (uint16) {
+        uint256 max = ponsFactory.maxCreatorTaxBps();
+        return max > type(uint16).max ? type(uint16).max : uint16(max);
+    }
+
     /// @notice ETH required on top of any initial buy.
     function launchFee() public view returns (uint256) {
         return ponsFactory.launchFee();
     }
 
-    /// @notice Launch with a custom fee split. `msg.value` = Pons launch fee + optional initial buy for the creator.
-    function launch(TokenMeta calldata meta, address quotePair, bool isMemestock, FeeConfig calldata feeConfig)
-        external
-        payable
-        nonReentrant
-        returns (address token, address vault)
-    {
-        return _launch(meta, quotePair, isMemestock, feeConfig);
+    /// @notice Launch with a custom fee split and creator tax (in bps, between `minCreatorTaxBps` and
+    ///         `maxCreatorTaxBps()`). `msg.value` = Pons launch fee + optional initial buy for the creator.
+    function launch(
+        TokenMeta calldata meta,
+        address quotePair,
+        bool isMemestock,
+        FeeConfig calldata feeConfig,
+        uint16 creatorTaxBps
+    ) external payable nonReentrant returns (address token, address vault) {
+        return _launch(meta, quotePair, isMemestock, feeConfig, creatorTaxBps);
     }
 
-    /// @notice Launch with the default split (40% buyback, 20% rewards, 40% creator).
+    /// @notice Launch with the default split (40% buyback, 20% rewards, 40% creator) and default creator tax.
     function launchWithDefaultConfig(TokenMeta calldata meta, address quotePair, bool isMemestock)
         external
         payable
         nonReentrant
         returns (address token, address vault)
     {
-        return _launch(meta, quotePair, isMemestock, defaultFeeConfig());
+        return _launch(meta, quotePair, isMemestock, defaultFeeConfig(), defaultCreatorTaxBps);
     }
 
-    function _launch(TokenMeta calldata meta, address quotePair, bool isMemestock, FeeConfig memory feeConfig)
-        private
-        returns (address token, address vault)
-    {
+    function _launch(
+        TokenMeta calldata meta,
+        address quotePair,
+        bool isMemestock,
+        FeeConfig memory feeConfig,
+        uint16 creatorTaxBps
+    ) private returns (address token, address vault) {
         if (paused) revert IsPaused();
+        uint16 maxBps = maxCreatorTaxBps();
+        if (creatorTaxBps < minCreatorTaxBps || creatorTaxBps > maxBps) {
+            revert CreatorTaxOutOfRange(minCreatorTaxBps, maxBps);
+        }
         if (!quotePairAllowed[quotePair] || quotePair != ETH) revert QuotePairNotAllowed();
         if (!ponsFactory.launchEnabled()) revert PonsLaunchDisabled();
         uint256 fee = ponsFactory.launchFee();
@@ -168,7 +188,7 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         address rewards = Clones.clone(holderRewardsImpl);
 
         address curve;
-        (token, curve) = _ponsLaunch(meta, vault);
+        (token, curve) = _ponsLaunch(meta, vault, creatorTaxBps);
 
         IHolderRewards(rewards).initialize(token);
         // Reverts on an out-of-bounds feeConfig.
@@ -200,7 +220,10 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         }
     }
 
-    function _ponsLaunch(TokenMeta calldata meta, address vault) private returns (address token, address curve) {
+    function _ponsLaunch(TokenMeta calldata meta, address vault, uint16 creatorTaxBps)
+        private
+        returns (address token, address curve)
+    {
         IPonsV2LaunchFactory.TokenParams memory p;
         p.name = meta.name;
         p.symbol = meta.symbol;

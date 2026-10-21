@@ -38,7 +38,10 @@ stakers. Full product spec: `spec.md`.
 - Official contracts are deployed on mainnet (`contracts/deployments/4663.json`, defaults in
   `OFFICIAL_MAINNET` in `web/lib/config.ts`). By the owner's decision they are owned by the owner's own
   wallet 0x52fE9A4058cc74fDE4BAd1A2a195F3ffBF01C8C1 (an EOA, not a Safe), and the large fee-flow smoke test
-  was skipped. Launches open on the site as soon as `NEXT_PUBLIC_INDEXER_URL` is set in Vercel; until then
+  was skipped. Creators pick their creator tax at launch (1–10%; min and default 1%, the owner can change
+  them with `setCreatorTaxBounds`; the max is the Pons V2 maximum). The first official set (launcher
+  0xF322…41eC, never used) is paused. The indexer defaults to the official addresses on chain 4663.
+  Launches open on the site as soon as `NEXT_PUBLIC_INDEXER_URL` is set in Vercel; until then
   `/launch` only saves a draft in the browser (`web/lib/launchDraft.ts`).
 - Official social: X https://x.com/PontoonFamily (`SOCIAL` in `web/lib/config.ts`), linked in the
   header, hero, launch banner and footer.
