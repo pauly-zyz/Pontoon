@@ -80,7 +80,7 @@ contract PontoonOnPonsForkTest is Test {
         vm.prank(creator);
         address v;
         (token, v) = launcher.launch{value: fee + 0.1 ether}(
-            meta, address(0), false, FeeConfig({buybackBps: 4_000, rewardBps: 2_000})
+            meta, address(0), false, FeeConfig({buybackBps: 4_000, rewardBps: 2_000}), 500
         );
         vault = FeeVault(payable(v));
         ITokenRegistry.TokenInfo memory info = registry.getToken(token);
@@ -96,12 +96,27 @@ contract PontoonOnPonsForkTest is Test {
         vm.roll(block.number + 5);
     }
 
+    /// @dev The real Pons accepts both ends of the creator's tax range (1% and 10%).
+    function test_fork_creatorTaxRange() public {
+        if (!forked) return;
+        uint256 fee = launcher.launchFee();
+        PontoonLauncher.TokenMeta memory meta;
+        meta.name = "Tax Range";
+        meta.symbol = "TAX";
+        vm.startPrank(creator);
+        (address lo,) = launcher.launch{value: fee}(meta, address(0), false, launcher.defaultFeeConfig(), 100);
+        (address hi,) = launcher.launch{value: fee}(meta, address(0), false, launcher.defaultFeeConfig(), 1000);
+        vm.stopPrank();
+        assertEq(PONS.getLaunchedToken(lo).creatorTaxBps, 100);
+        assertEq(PONS.getLaunchedToken(hi).creatorTaxBps, 1000);
+    }
+
     function test_fork_launchWiresPons() public view {
         if (!forked) return;
         IPonsV2LaunchFactory.LaunchedToken memory l = PONS.getLaunchedToken(token);
         assertEq(l.curve, address(curve));
         assertEq(l.creatorFeeRecipient, address(vault), "FeeVault receives the creator fee");
-        assertEq(l.creatorTaxBps, 300);
+        assertEq(l.creatorTaxBps, 500, "creator-chosen tax reaches Pons");
         assertFalse(l.buybackEnabled);
         assertEq(curve.token(), token);
         // Initial buy was in the launch tx and exempt from the snipe tax: ~5% of supply for 0.1 ETH.

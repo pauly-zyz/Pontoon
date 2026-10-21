@@ -53,7 +53,8 @@ contract Deploy is Script {
         require(PlatformTreasury(payable(launcher.treasury())).owner() == multisig, "treasury owner");
         require(CTOManager(launcher.ctoManager()).owner() == multisig, "cto owner");
         require(address(launcher.ponsFactory()) == address(pons), "pons factory");
-        require(launcher.creatorTaxBps() <= pons.maxCreatorTaxBps(), "creator tax");
+        require(launcher.minCreatorTaxBps() <= launcher.defaultCreatorTaxBps(), "creator tax bounds");
+        require(launcher.defaultCreatorTaxBps() <= pons.maxCreatorTaxBps(), "creator tax");
     }
 
     function _write(PontoonLauncher launcher, uint256 startBlock) internal {

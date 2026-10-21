@@ -81,7 +81,8 @@ contract MainnetSmoke is Script {
             }),
             address(0),
             false,
-            FeeConfig({buybackBps: 4_000, rewardBps: 2_000})
+            FeeConfig({buybackBps: 4_000, rewardBps: 2_000}),
+            300
         );
         vm.stopBroadcast();
 

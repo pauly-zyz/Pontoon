@@ -80,7 +80,7 @@ abstract contract BaseTest is Test {
         uint256 fee = launcher.launchFee();
         vm.deal(who, who.balance + fee);
         vm.prank(who);
-        (t, v) = launcher.launch{value: fee}(_meta(), address(0), false, cfg);
+        (t, v) = launcher.launch{value: fee}(_meta(), address(0), false, cfg, 300);
     }
 
     /// @dev Pons credits `amount` of creator fees to the vault in its FeeEscrow (as trades + a sweep would).

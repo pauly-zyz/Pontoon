@@ -15,7 +15,7 @@ const PARAM_ROWS: [string, string, string][] = [
   ["Config change timelock", "24 hours", "Holders can see changes before they apply"],
   ["Buyback cap per execution", "min(0.5 ETH, 1% of curve liquidity)", "Limits price impact and sandwich risk"],
   ["Pons V2 launch fee", "0.0005 ETH", "Paid to Pons at launch, on top of any initial buy"],
-  ["Trading fees (bonding curve)", "1% curve fee + 3% creator fee", "The creator fee and 70% of the curve fee go to the FeeVault"],
+  ["Trading fees (bonding curve)", "1% curve fee + 1–10% creator fee", "The creator picks the creator fee at launch; it and 70% of the curve fee go to the FeeVault"],
   ["CTO timelock", "3 days + multisig approval", "Follows the Pons V2 flow"],
   ["Treasury withdrawal timelock", "48 hours", "Platform withdrawals are visible in advance"],
 ];
@@ -51,7 +51,7 @@ export default function DocsPage() {
         <ol className="list-decimal space-y-2 pl-5 text-sm text-muted">
           <li>Traders buy or sell on Pons V2 (the bonding curve before graduation, Uniswap V4 after).</li>
           <li>
-            Pons V2 credits the creator fee (a 3% creator tax plus 70% of the 1% curve fee) in ETH to that token&apos;s
+            Pons V2 credits the creator fee (the creator tax of 1–10% that the creator picked at launch, plus 70% of the 1% curve fee) in ETH to that token&apos;s
             FeeVault, not to the creator&apos;s wallet.
           </li>
           <li>Anyone can call distribute(), which collects those fees from Pons, and earn a small incentive.</li>

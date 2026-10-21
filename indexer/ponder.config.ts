@@ -14,7 +14,20 @@ import { TokenRegistryAbi } from "./abis/TokenRegistryAbi";
 const chainId = Number(process.env.PONDER_CHAIN_ID ?? 4663);
 // Live Pons V2 launch factory on Robinhood Chain mainnet (also present on a local mainnet fork).
 const PONS_FACTORY_MAINNET = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
-const startBlock = Number(process.env.PONDER_START_BLOCK ?? 0);
+// Official Pontoon deployment on Robinhood Chain mainnet (contracts/deployments/4663.json). Used when the env
+// does not set the addresses; a local mainnet fork (PONDER_LOCAL_FORK) always sets its own.
+const OFFICIAL_MAINNET: Record<string, string> = {
+  PONDER_START_BLOCK: "94087197",
+  PONTOON_LAUNCHER_ADDRESS: "0x23b2f18e2C190dB01E4ae2C13157d8e82a1f548E",
+  TOKEN_REGISTRY_ADDRESS: "0x94B8b52D957f2Bb4006266AfcbECE22a04c64818",
+  BUYBACK_EXECUTOR_ADDRESS: "0x8BCfBf71509374062f292c341ab00e9314b72784",
+  PLATFORM_TREASURY_ADDRESS: "0xC31A1F1B2fd11cD9A2E830610f7B963A27A020c8",
+  CTO_MANAGER_ADDRESS: "0xCb9Eea98eF137cd19dC6C83AB70e97d805fCB2c3",
+};
+const defaults = chainId === 4663 && process.env.PONDER_LOCAL_FORK !== "true" ? OFFICIAL_MAINNET : {};
+const env = (name: string) => process.env[name] || defaults[name];
+
+const startBlock = Number(env("PONDER_START_BLOCK") ?? 0);
 // Mainnet has ~94M blocks: indexing from 0 would take days. Use the block of the official deployment
 // (contracts/deployments/4663.json "startBlock"), which also keeps test activity off the site.
 if (chainId === 4663 && process.env.PONDER_LOCAL_FORK !== "true" && !(startBlock > 0)) {
@@ -22,7 +35,7 @@ if (chainId === 4663 && process.env.PONDER_LOCAL_FORK !== "true" && !(startBlock
 }
 
 function addr(name: string): Address {
-  const value = process.env[name];
+  const value = env(name);
   if (!value) throw new Error(`Missing env ${name} (see .env.example)`);
   return value as Address;
 }

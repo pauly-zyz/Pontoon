@@ -9,6 +9,7 @@ import {BuybackExecutor} from "../src/BuybackExecutor.sol";
 import {HolderRewards} from "../src/HolderRewards.sol";
 import {PlatformTreasury} from "../src/PlatformTreasury.sol";
 import {FeeConfig, ITokenRegistry} from "../src/interfaces/IPontoon.sol";
+import {IPonsV2Curve} from "../src/interfaces/IPonsV2Live.sol";
 
 contract LauncherTest is BaseTest {
     function test_launch_registersEverything() public view {
@@ -25,7 +26,7 @@ contract LauncherTest is BaseTest {
     }
 
     function test_launch_passesPonsParams() public view {
-        assertEq(curve.creatorTaxBps(), 300, "default creator tax");
+        assertEq(curve.creatorTaxBps(), 300, "creator tax chosen at launch");
         assertEq(curve.feeRecipient(), address(vault));
         assertEq(pons.exemptionsSeen(0), creator, "creator exempt from snipe tax");
     }
@@ -35,7 +36,7 @@ contract LauncherTest is BaseTest {
         uint256 fee = launcher.launchFee();
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(PontoonLauncher.InsufficientLaunchFee.selector, fee));
-        launcher.launch{value: fee - 1}(_meta(), address(0), false, FeeConfig(0, 0));
+        launcher.launch{value: fee - 1}(_meta(), address(0), false, FeeConfig(0, 0), 300);
     }
 
     function test_launch_onlyEthPairForNow() public {
@@ -43,7 +44,7 @@ contract LauncherTest is BaseTest {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(PontoonLauncher.QuotePairNotAllowed.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), usdg, true, FeeConfig(0, 0));
+        launcher.launch{value: 0.0005 ether}(_meta(), usdg, true, FeeConfig(0, 0), 300);
         vm.prank(multisig);
         vm.expectRevert(PontoonLauncher.QuotePairNotAllowed.selector);
         launcher.setQuotePair(usdg, true);
@@ -53,7 +54,7 @@ contract LauncherTest is BaseTest {
         vm.deal(alice, 1 ether);
         uint256 fee = launcher.launchFee();
         vm.prank(alice);
-        (address t,) = launcher.launch{value: fee + 0.2 ether}(_meta(), address(0), false, FeeConfig(0, 0));
+        (address t,) = launcher.launch{value: fee + 0.2 ether}(_meta(), address(0), false, FeeConfig(0, 0), 300);
         assertGt(MockBalance(t).balanceOf(alice), 0);
         assertEq(alice.balance, 1 ether - fee - 0.2 ether);
     }
@@ -62,7 +63,7 @@ contract LauncherTest is BaseTest {
         vm.deal(alice, 1 ether);
         uint256 fee = launcher.launchFee();
         vm.prank(alice);
-        (address t,) = launcher.launch{value: fee}(_meta(), address(0), true, FeeConfig(0, 0));
+        (address t,) = launcher.launch{value: fee}(_meta(), address(0), true, FeeConfig(0, 0), 300);
         assertTrue(registry.getToken(t).isMemestock);
     }
 
@@ -71,14 +72,50 @@ contract LauncherTest is BaseTest {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(PontoonLauncher.PonsLaunchDisabled.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, FeeConfig(0, 0));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, FeeConfig(0, 0), 300);
     }
 
-    function test_creatorTax_cappedByPons() public {
+    function test_creatorTax_creatorPicksWithinBounds() public {
+        uint256 fee = launcher.launchFee();
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        (address lo,) = launcher.launch{value: fee}(_meta(), address(0), false, FeeConfig(0, 0), 100);
+        (address hi,) = launcher.launch{value: fee}(_meta(), address(0), false, FeeConfig(0, 0), 1000);
+        vm.stopPrank();
+        assertEq(IPonsV2Curve(registry.getToken(lo).curve).creatorTaxBps(), 100);
+        assertEq(IPonsV2Curve(registry.getToken(hi).curve).creatorTaxBps(), 1000);
+    }
+
+    function test_creatorTax_revertsOutOfBounds() public {
+        uint256 fee = launcher.launchFee();
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(PontoonLauncher.CreatorTaxOutOfRange.selector, 100, 1000));
+        launcher.launch{value: fee}(_meta(), address(0), false, FeeConfig(0, 0), 99);
+        vm.expectRevert(abi.encodeWithSelector(PontoonLauncher.CreatorTaxOutOfRange.selector, 100, 1000));
+        launcher.launch{value: fee}(_meta(), address(0), false, FeeConfig(0, 0), 1001);
+        vm.stopPrank();
+    }
+
+    function test_creatorTax_defaultConfigUsesDefault() public {
+        uint256 fee = launcher.launchFee();
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        (address t,) = launcher.launchWithDefaultConfig{value: fee}(_meta(), address(0), false);
+        assertEq(IPonsV2Curve(registry.getToken(t).curve).creatorTaxBps(), 100);
+    }
+
+    function test_creatorTax_ownerSetsBounds() public {
+        vm.expectRevert();
+        launcher.setCreatorTaxBounds(0, 0);
         vm.startPrank(multisig);
-        launcher.setCreatorTaxBps(1000);
-        vm.expectRevert(PontoonLauncher.FeeTooHigh.selector);
-        launcher.setCreatorTaxBps(1001);
+        launcher.setCreatorTaxBounds(0, 300);
+        assertEq(launcher.minCreatorTaxBps(), 0);
+        assertEq(launcher.defaultCreatorTaxBps(), 300);
+        vm.expectRevert(abi.encodeWithSelector(PontoonLauncher.CreatorTaxOutOfRange.selector, 0, 1000));
+        launcher.setCreatorTaxBounds(0, 1001);
+        vm.expectRevert(abi.encodeWithSelector(PontoonLauncher.CreatorTaxOutOfRange.selector, 500, 1000));
+        launcher.setCreatorTaxBounds(500, 400);
         vm.stopPrank();
     }
 
@@ -88,7 +125,7 @@ contract LauncherTest is BaseTest {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(PontoonLauncher.IsPaused.selector);
-        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, FeeConfig(0, 0));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, FeeConfig(0, 0), 300);
     }
 
     function test_registry_onlyLauncherRegisters() public {

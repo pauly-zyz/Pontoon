@@ -15,6 +15,7 @@ export type LaunchDraft = {
   quoteKey: string;
   memestock: boolean;
   fee: FeeConfigState;
+  creatorTaxBps?: number; // drafts saved before the tax choice existed have none
   savedAt: number; // unix ms
 };
 
