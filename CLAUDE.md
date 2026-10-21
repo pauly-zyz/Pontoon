@@ -35,10 +35,11 @@ stakers. Full product spec: `spec.md`.
 - Web UI text must stay in English.
 - Market cap and volume are always shown in USD, never ETH (`web/lib/price.ts`: CoinGecko, then
   Coinbase, then Binance, then the last cached price; zero is "$0"). Other amounts stay in ETH.
-- Launching: until official contract addresses are set, `/launch` lets creators prepare and save a
-  draft in their browser (`web/lib/launchDraft.ts`); nothing goes on-chain. Do not open real public
-  launches until a real test launch has passed end to end on Robinhood Chain (testnet first), the
-  site is clean of test data, and the owner has provided the official contract addresses.
+- Official contracts are deployed on mainnet (`contracts/deployments/4663.json`, defaults in
+  `OFFICIAL_MAINNET` in `web/lib/config.ts`). By the owner's decision they are owned by the owner's own
+  wallet 0x52fE9A4058cc74fDE4BAd1A2a195F3ffBF01C8C1 (an EOA, not a Safe), and the large fee-flow smoke test
+  was skipped. Launches open on the site as soon as `NEXT_PUBLIC_INDEXER_URL` is set in Vercel; until then
+  `/launch` only saves a draft in the browser (`web/lib/launchDraft.ts`).
 - Official social: X https://x.com/PontoonFamily (`SOCIAL` in `web/lib/config.ts`), linked in the
   header, hero, launch banner and footer.
 - Next.js 16 differs from older versions: read `web/node_modules/next/dist/docs/` before using

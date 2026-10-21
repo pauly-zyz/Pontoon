@@ -1,0 +1,10 @@
+{
+  "CTOManager": "0xaa0cAecdFa2275FCAe602b43358F43bDFa631680",
+  "BuybackExecutor": "0xE8D4c92B2868F34E56BB0dDA83D0916a76afAb9f",
+  "PlatformTreasury": "0x53dB0bcf8c5e003B5219bE5593a64C894851110b",
+  "PonsFactory": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+  "PontoonLauncher": "0xF322fACa574c05138c30D31997E6ABF03d6441eC",
+  "TokenRegistry": "0xc7D03457D9171d0645B19A1002ba855442e55232",
+  "chainId": 4663,
+  "startBlock": 94058666
+}
