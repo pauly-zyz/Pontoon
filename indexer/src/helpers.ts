@@ -147,10 +147,15 @@ export function encodeMetadata(meta: {
 }): string {
   const json = JSON.stringify({
     description: meta.description || undefined,
-    image: meta.logo || undefined,
+    image: ipfsToHttps(meta.logo) || undefined,
     twitter: meta.twitter || undefined,
     telegram: meta.telegram || undefined,
     website: meta.website || undefined,
   });
   return `data:application/json;base64,${Buffer.from(json, "utf8").toString("base64")}`;
+}
+
+/** ipfs://<cid> logos are served through a public gateway; the web app only shows http(s) images. */
+export function ipfsToHttps(uri: string): string {
+  return uri.startsWith("ipfs://") ? `https://ipfs.io/ipfs/${uri.slice(7).replace(/^ipfs\//, "")}` : uri;
 }

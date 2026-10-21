@@ -10,6 +10,7 @@ import { PonsV2CurveAbi } from "./abis/PonsV2CurveAbi";
 import { PonsV2FactoryAbi } from "./abis/PonsV2FactoryAbi";
 import { PontoonLauncherAbi } from "./abis/PontoonLauncherAbi";
 import { TokenRegistryAbi } from "./abis/TokenRegistryAbi";
+import { OFFICIAL_TOKEN } from "./src/official";
 
 const chainId = Number(process.env.PONDER_CHAIN_ID ?? 4663);
 // Live Pons V2 launch factory on Robinhood Chain mainnet (also present on a local mainnet fork).
@@ -101,7 +102,15 @@ export default createConfig({
       }),
       startBlock,
     },
-    // Pons V2 factory: PoolGraduated. Events for tokens not launched via Pontoon are ignored.
+    // Bonding curve of the official $PONTOON token, launched directly on Pons V2.
+    OfficialCurve: {
+      chain: "robinhood",
+      abi: PonsV2CurveAbi,
+      address: OFFICIAL_TOKEN.curve,
+      startBlock: Math.max(startBlock, OFFICIAL_TOKEN.launchBlock),
+    },
+    // Pons V2 factory: PoolGraduated, and TokenLaunched for the official token. Events for other
+    // tokens not launched via Pontoon are ignored.
     PonsV2: {
       chain: "robinhood",
       abi: PonsV2FactoryAbi,
