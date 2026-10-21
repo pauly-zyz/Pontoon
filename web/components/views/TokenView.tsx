@@ -4,6 +4,7 @@ import Link from "next/link";
 import { isAddress } from "viem";
 import { useActivity, useNow, useTokenDetail, useTrades } from "@/lib/api";
 import { countdown, formatEth, formatTokens, parseMetadata, safeUrl, timeAgo } from "@/lib/format";
+import { isOfficialToken } from "@/lib/config";
 import type { TokenDetail } from "@/lib/types";
 import { CurveProgress } from "../CurveProgress";
 import { PriceChart } from "../PriceChart";
@@ -45,6 +46,8 @@ export function TokenSkeleton() {
 
 function TokenBody({ detail }: { detail: TokenDetail }) {
   const { token: t } = detail;
+  // $PONTOON was launched directly on Pons V2: no FeeVault, staking, buyback or CTO.
+  const official = isOfficialToken(t.address);
   const meta = parseMetadata(t.metadataURI);
   const hue = tokenHue(t.address);
   const now = useNow();
@@ -79,6 +82,7 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
               <span className="font-mono text-lg text-muted">${t.symbol}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
+              {official && <Badge tone="accent">★ Official Pontoon token</Badge>}
               <QuoteBadge quoteAsset={t.quoteAsset} />
               {t.isMemestock && <Badge tone="amber">Memestock</Badge>}
               {t.graduated ? <Badge tone="accent">🎓 Graduated · Uniswap V4</Badge> : <Badge>Bonding curve</Badge>}
@@ -96,9 +100,11 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
                   Admin (CTO) <AddressLink address={t.admin} />
                 </span>
               )}
-              <span>
-                Vault <AddressLink address={t.vault} />
-              </span>
+              {!official && (
+                <span>
+                  Vault <AddressLink address={t.vault} />
+                </span>
+              )}
               {now && <span>Launched {timeAgo(t.launchedAt, now)}</span>}
             </div>
           </div>
@@ -123,8 +129,17 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Market cap" value={<UsdValue wei={t.marketCapEth} />} />
         <Stat label="24h volume" value={<UsdValue wei={detail.volume24h} />} hint={`${detail.trades24h} trades`} />
-        <Stat label="Buyback" value={`${formatEth(t.buybackEthSpent, 3)} ETH`} hint={`${formatTokens(t.tokensBurned)} ${t.symbol} burned`} />
-        <Stat label="Holder rewards" value={`${formatEth(t.rewardsFunded, 3)} ETH`} hint={`${t.stakerCount} stakers`} />
+        {official ? (
+          <>
+            <Stat label="Total volume" value={<UsdValue wei={t.volumeEth} />} hint={`${formatEth(t.volumeEth, 3)} ETH`} />
+            <Stat label="Trades" value={t.tradeCount.toLocaleString("en-US")} hint="on the bonding curve" />
+          </>
+        ) : (
+          <>
+            <Stat label="Buyback" value={`${formatEth(t.buybackEthSpent, 3)} ETH`} hint={`${formatTokens(t.tokensBurned)} ${t.symbol} burned`} />
+            <Stat label="Holder rewards" value={`${formatEth(t.rewardsFunded, 3)} ETH`} hint={`${t.stakerCount} stakers`} />
+          </>
+        )}
       </section>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -137,70 +152,28 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
             </div>
           </Card>
 
-          <ConfigCard config={detail.config} />
-
-          <Card>
-            <CardTitle>Buyback-burn history</CardTitle>
-            {detail.buybacks.length === 0 ? (
-              <Empty>No buybacks yet.</Empty>
-            ) : (
-              <Table
-                head={["Time", "ETH in", "Tokens burned", "Tx"]}
-                rows={detail.buybacks.map((b) => [
-                  now ? timeAgo(b.timestamp, now) : "",
-                  `${formatEth(b.ethIn)} ETH`,
-                  `${formatTokens(b.tokensBurned)} ${t.symbol}`,
-                  <TxLink key="tx" hash={b.txHash} />,
-                ])}
-              />
-            )}
-          </Card>
-
-          <Card>
-            <CardTitle>Fee distributions</CardTitle>
-            {detail.distributions.length === 0 ? (
-              <Empty>No distributions yet.</Empty>
-            ) : (
-              <Table
-                head={["Time", "Platform", "Creator", "Buyback", "Rewards", "Tx"]}
-                rows={detail.distributions.map((d) => [
-                  now ? timeAgo(d.timestamp, now) : "",
-                  formatEth(d.platform),
-                  formatEth(d.creator),
-                  formatEth(d.buyback),
-                  formatEth(d.rewards),
-                  <TxLink key="tx" hash={d.txHash} />,
-                ])}
-              />
-            )}
-          </Card>
-
-          <Card>
-            <CardTitle aside={<span className="text-xs text-muted">{formatTokens(t.totalStaked)} staked in total</span>}>
-              Holders (top stakers)
-            </CardTitle>
-            {detail.topStakers.length === 0 ? (
-              <Empty>Nobody has staked yet.</Empty>
-            ) : (
-              <Table
-                head={["Address", "Staked", "Share", "Rewards claimed"]}
-                rows={detail.topStakers.map((s) => [
-                  <AddressLink key="a" address={s.user} />,
-                  formatTokens(s.staked),
-                  BigInt(t.totalStaked) > 0n ? `${((Number(s.staked) / Number(t.totalStaked)) * 100).toFixed(1)}%` : "—",
-                  `${formatEth(s.claimed)} ETH`,
-                ])}
-              />
-            )}
-          </Card>
+          {!official && <PontoonSections detail={detail} now={now} />}
         </div>
 
         <aside className="space-y-6">
           <TradePanel token={t} />
-          <StakingPanel token={t} />
-          <VaultPanel token={t} />
-          <BuybackPanel token={t} />
-          <CtoCard detail={detail} now={now} />
+          {official ? (
+            <Card>
+              <CardTitle>Official token</CardTitle>
+              <p className="text-sm leading-relaxed text-muted">
+                ${t.symbol} is the official Pontoon token. It was launched directly on Pons V2, so it trades like any
+                other token here, but its creator fee does not go through a Pontoon FeeVault: there is no staking or
+                buyback-and-burn for it.
+              </p>
+            </Card>
+          ) : (
+            <>
+              <StakingPanel token={t} />
+              <VaultPanel token={t} />
+              <BuybackPanel token={t} />
+              <CtoCard detail={detail} now={now} />
+            </>
+          )}
           <Card>
             <CardTitle>Activity</CardTitle>
             <TxFeed items={activity.data} loading={activity.isLoading} showToken={false} />
@@ -208,6 +181,71 @@ function TokenBody({ detail }: { detail: TokenDetail }) {
         </aside>
       </div>
     </div>
+  );
+}
+
+/** FeeVault config, buybacks, distributions and stakers: only for tokens launched through Pontoon. */
+function PontoonSections({ detail, now }: { detail: TokenDetail; now: number | null }) {
+  const { token: t } = detail;
+  return (
+    <>
+      <ConfigCard config={detail.config} />
+
+      <Card>
+        <CardTitle>Buyback-burn history</CardTitle>
+        {detail.buybacks.length === 0 ? (
+          <Empty>No buybacks yet.</Empty>
+        ) : (
+          <Table
+            head={["Time", "ETH in", "Tokens burned", "Tx"]}
+            rows={detail.buybacks.map((b) => [
+              now ? timeAgo(b.timestamp, now) : "",
+              `${formatEth(b.ethIn)} ETH`,
+              `${formatTokens(b.tokensBurned)} ${t.symbol}`,
+              <TxLink key="tx" hash={b.txHash} />,
+            ])}
+          />
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Fee distributions</CardTitle>
+        {detail.distributions.length === 0 ? (
+          <Empty>No distributions yet.</Empty>
+        ) : (
+          <Table
+            head={["Time", "Platform", "Creator", "Buyback", "Rewards", "Tx"]}
+            rows={detail.distributions.map((d) => [
+              now ? timeAgo(d.timestamp, now) : "",
+              formatEth(d.platform),
+              formatEth(d.creator),
+              formatEth(d.buyback),
+              formatEth(d.rewards),
+              <TxLink key="tx" hash={d.txHash} />,
+            ])}
+          />
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle aside={<span className="text-xs text-muted">{formatTokens(t.totalStaked)} staked in total</span>}>
+          Holders (top stakers)
+        </CardTitle>
+        {detail.topStakers.length === 0 ? (
+          <Empty>Nobody has staked yet.</Empty>
+        ) : (
+          <Table
+            head={["Address", "Staked", "Share", "Rewards claimed"]}
+            rows={detail.topStakers.map((s) => [
+              <AddressLink key="a" address={s.user} />,
+              formatTokens(s.staked),
+              BigInt(t.totalStaked) > 0n ? `${((Number(s.staked) / Number(t.totalStaked)) * 100).toFixed(1)}%` : "—",
+              `${formatEth(s.claimed)} ETH`,
+            ])}
+          />
+        )}
+      </Card>
+    </>
   );
 }
 

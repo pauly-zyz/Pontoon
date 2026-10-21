@@ -43,6 +43,12 @@ stakers. Full product spec: `spec.md`.
   0xF322…41eC, never used) is paused. The indexer defaults to the official addresses on chain 4663.
   Launches open on the site as soon as `NEXT_PUBLIC_INDEXER_URL` is set in Vercel; until then
   `/launch` only saves a draft in the browser (`web/lib/launchDraft.ts`).
+- Official token $PONTOON 0x172eBBE24234F6372aE2A8c59280e27d236ff177 was launched directly on Pons V2 (no
+  FeeVault). The indexer follows its curve (`indexer/src/official.ts`); the web pins it on the home page with an
+  "Official" badge and shows its CA in the hero and footer (`OFFICIAL_TOKEN` in `web/lib/config.ts`).
+- The public Robinhood RPC keeps only ~30 minutes of historical state: indexer handlers must not add new
+  historical `eth_call`s for old blocks (a full resync would hang). Use an archive RPC for `PONDER_RPC_URL`
+  before relying on resyncs.
 - Official social: X https://x.com/PontoonFamily (`SOCIAL` in `web/lib/config.ts`), linked in the
   header, hero, launch banner and footer.
 - Next.js 16 differs from older versions: read `web/node_modules/next/dist/docs/` before using

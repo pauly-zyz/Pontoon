@@ -132,3 +132,5 @@ export const OFFICIAL_TOKEN = {
   symbol: "PONTOON",
   address: "0x172eBBE24234F6372aE2A8c59280e27d236ff177" as Address,
 };
+
+export const isOfficialToken = (address: string) => address.toLowerCase() === OFFICIAL_TOKEN.address.toLowerCase();

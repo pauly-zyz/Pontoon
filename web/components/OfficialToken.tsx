@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { OFFICIAL_TOKEN } from "@/lib/config";
+import Link from "next/link";
+import { OFFICIAL_TOKEN, PRE_LAUNCH } from "@/lib/config";
 import { addressUrl } from "@/lib/format";
 import { cn } from "./ui";
 
@@ -25,6 +26,11 @@ export function OfficialToken({ className }: { className?: string }) {
       <div className="flex items-center justify-between gap-3 text-xs">
         <span className="font-semibold text-accent">Official ${OFFICIAL_TOKEN.symbol} CA</span>
         <span className="flex gap-3">
+          {!PRE_LAUNCH && (
+            <Link href={`/token/${OFFICIAL_TOKEN.address}`} className="font-medium text-accent transition-colors hover:text-ink">
+              Trade
+            </Link>
+          )}
           <button type="button" onClick={copy} className="font-medium text-muted transition-colors hover:text-ink">
             {copied ? "✓ Copied" : "Copy"}
           </button>

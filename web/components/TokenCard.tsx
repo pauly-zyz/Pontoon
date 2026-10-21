@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { quotePairOf } from "@/lib/config";
+import { isOfficialToken, quotePairOf } from "@/lib/config";
 import { parseMetadata } from "@/lib/format";
 import type { TokenListItem } from "@/lib/types";
 import { CurveProgress } from "./CurveProgress";
@@ -37,6 +37,7 @@ export function TokenCard({ token, rank }: { token: TokenListItem; rank?: number
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             <span className="font-mono">${token.symbol}</span>
+            {isOfficialToken(token.address) && <Badge tone="accent">★ Official</Badge>}
             <QuoteBadge quoteAsset={token.quoteAsset} />
             {token.isMemestock && <Badge tone="amber">Memestock</Badge>}
           </div>

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatEther } from "viem";
-import { useActivity, useStats, useTokens } from "@/lib/api";
-import { CONTRACTS_READY, PRE_LAUNCH, SOCIAL } from "@/lib/config";
+import { useActivity, useStats, useTokenDetail, useTokens } from "@/lib/api";
+import { CONTRACTS_READY, OFFICIAL_TOKEN, PRE_LAUNCH, SOCIAL } from "@/lib/config";
 import { formatUsd, usdText, useEthUsd } from "@/lib/price";
 import type { TokenTab } from "@/lib/types";
 import { CountUp } from "../CountUp";
@@ -139,6 +139,23 @@ function Hero() {
   );
 }
 
+/** The official $PONTOON token, pinned above the token lists once the indexer has it. */
+function OfficialTokenSection() {
+  const { data } = useTokenDetail(OFFICIAL_TOKEN.address);
+  if (!data) return null;
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-2">
+        <h2 className="font-display text-xl font-semibold">Official token</h2>
+        <span className="text-xs text-muted">Pinned</span>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <TokenCard token={{ ...data.token, volume24h: data.volume24h }} />
+      </div>
+    </section>
+  );
+}
+
 export function HomeView() {
   const [tab, setTab] = useState<TokenTab>("trending");
   const stats = useStats();
@@ -183,6 +200,8 @@ export function HomeView() {
           />
         </section>
       )}
+
+      <OfficialTokenSection />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section>

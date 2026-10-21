@@ -14,6 +14,8 @@ import {
   ts,
   updateToken,
 } from "./helpers";
+import { isOfficialCurve, isOfficialToken, OFFICIAL_TOKEN } from "./official";
+import { ensureOfficialToken, latestClient } from "./officialToken";
 
 // PontoonLauncher.TokenLaunched and TokenRegistry.TokenRegistered fire in the same tx, each carrying
 // part of the token data, so both upsert the row.
@@ -130,17 +132,23 @@ async function recordTrade(
   tokenAmount: bigint,
 ) {
   const curve = event.log.address;
-  const address = (await client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "token" })) as `0x${string}`;
+  const official = isOfficialCurve(curve);
+  if (official) await ensureOfficialToken(db, event);
+  // The official token's reads use the latest state (see officialToken.ts).
+  const reader = official ? latestClient : client;
+  const address = official
+    ? (OFFICIAL_TOKEN.token as `0x${string}`)
+    : ((await client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "token" })) as `0x${string}`);
   const row = await db.find(token, { address });
   if (!row) return;
 
   const [quoteReserve, realQuoteReserve, threshold, graduated, tokenReserve, totalSupply] = (await Promise.all([
-    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "quoteReserve" }),
-    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "realQuoteReserve" }),
-    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduationThreshold" }),
-    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduated" }),
-    client.readContract({ abi: erc20Abi, address, functionName: "balanceOf", args: [curve] }),
-    client.readContract({ abi: erc20Abi, address, functionName: "totalSupply" }),
+    reader.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "quoteReserve" }),
+    reader.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "realQuoteReserve" }),
+    reader.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduationThreshold" }),
+    reader.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduated" }),
+    reader.readContract({ abi: erc20Abi, address, functionName: "balanceOf", args: [curve] }),
+    reader.readContract({ abi: erc20Abi, address, functionName: "totalSupply" }),
   ])) as [bigint, bigint, bigint, boolean, bigint, bigint];
 
   let lastPriceWei = row.lastPriceWei;
@@ -171,6 +179,23 @@ async function recordTrade(
   });
   await bumpStats(db, (s) => ({ volumeEth: s.volumeEth + ethAmount, tradeCount: s.tradeCount + 1 }));
 }
+
+// The official $PONTOON token was launched directly on Pons V2: list it when Pons reports its launch.
+ponder.on("PonsV2:TokenLaunched", async ({ event, context }) => {
+  if (!isOfficialToken(event.args.token)) return;
+  await ensureOfficialToken(context.db, event);
+  await logActivity(context.db, event, "launch", { token: event.args.token, actor: event.args.deployer, data: { official: true } });
+});
+
+ponder.on("OfficialCurve:CurveBuy", async ({ event, context }) => {
+  const { recipient, quoteIn, tokensOut } = event.args;
+  await recordTrade(context.db, context.client, event, recipient, true, quoteIn, tokensOut);
+});
+
+ponder.on("OfficialCurve:CurveSell", async ({ event, context }) => {
+  const { seller, tokensIn, quoteOut } = event.args;
+  await recordTrade(context.db, context.client, event, seller, false, quoteOut, tokensIn);
+});
 
 ponder.on("PonsV2Curve:CurveBuy", async ({ event, context }) => {
   const { recipient, quoteIn, tokensOut } = event.args;
