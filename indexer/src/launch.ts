@@ -3,20 +3,29 @@ import { token, trade } from "ponder:schema";
 import { erc20Abi, zeroAddress } from "viem";
 
 import { FeeVaultAbi } from "../abis/FeeVaultAbi";
-import { PonsV2FactoryAbi } from "../abis/PonsV2FactoryAbi";
-import { bumpStats, type Db, type EventLike, logActivity, newToken, ts, updateToken } from "./helpers";
+import { PonsV2CurveAbi } from "../abis/PonsV2CurveAbi";
+import {
+  bumpStats,
+  type Db,
+  encodeMetadata,
+  type EventLike,
+  logActivity,
+  newToken,
+  ts,
+  updateToken,
+} from "./helpers";
 
 // PontoonLauncher.TokenLaunched and TokenRegistry.TokenRegistered fire in the same tx, each carrying
 // part of the token data, so both upsert the row.
 
 ponder.on("TokenRegistry:TokenRegistered", async ({ event, context }) => {
-  const { token: address, creator, vault, holderRewards } = event.args;
+  const { token: address, creator, curve, vault, holderRewards } = event.args;
   await context.db
     .insert(token)
     .values(
-      newToken({ address, creator, vault, holderRewards, quoteAsset: zeroAddress, isMemestock: false, event }),
+      newToken({ address, creator, vault, holderRewards, curve, quoteAsset: zeroAddress, isMemestock: false, event }),
     )
-    .onConflictDoUpdate({ holderRewards });
+    .onConflictDoUpdate({ holderRewards, curve });
 });
 
 ponder.on("PontoonLauncher:TokenLaunched", async ({ event, context }) => {
@@ -32,7 +41,16 @@ ponder.on("PontoonLauncher:TokenLaunched", async ({ event, context }) => {
   await context.db
     .insert(token)
     .values({
-      ...newToken({ address, creator, vault, holderRewards: zeroAddress, quoteAsset: quotePair, isMemestock, event }),
+      ...newToken({
+        address,
+        creator,
+        vault,
+        holderRewards: zeroAddress,
+        curve: zeroAddress,
+        quoteAsset: quotePair,
+        isMemestock,
+        event,
+      }),
       buybackBps,
       rewardBps,
     })
@@ -51,8 +69,12 @@ ponder.on("PontoonLauncher:TokenLaunched", async ({ event, context }) => {
 
 // Emitted between TokenRegistered and TokenLaunched, so the row already exists.
 ponder.on("PontoonLauncher:TokenMetadata", async ({ event, context }) => {
-  const { token: address, name, symbol, metadataURI } = event.args;
-  await updateToken(context.db, address, () => ({ name, symbol, metadataURI }));
+  const { token: address, meta } = event.args;
+  await updateToken(context.db, address, () => ({
+    name: meta.name,
+    symbol: meta.symbol,
+    metadataURI: encodeMetadata(meta),
+  }));
 });
 
 ponder.on("TokenRegistry:MemestockTagSet", async ({ event, context }) => {
@@ -63,6 +85,16 @@ ponder.on("TokenRegistry:MemestockTagSet", async ({ event, context }) => {
     return { isMemestock };
   });
   if (delta !== 0) await bumpStats(context.db, (s) => ({ memestocks: s.memestocks + delta }));
+});
+
+ponder.on("PontoonLauncher:InitialBuy", async ({ event, context }) => {
+  const { token: address, creator, ethIn, tokensOut } = event.args;
+  await logActivity(context.db, event, "initial_buy", {
+    token: address,
+    actor: creator,
+    amount: ethIn,
+    data: { tokensOut },
+  });
 });
 
 // Graduation is reported by Pons V2 and copied into TokenRegistry by markGraduated();
@@ -79,7 +111,7 @@ async function markGraduated(db: Db, event: EventLike, address: `0x${string}`, s
   await logActivity(db, event, "graduated", { token: address, data: { source } });
 }
 
-ponder.on("PonsV2:Graduated", async ({ event, context }) => {
+ponder.on("PonsV2:PoolGraduated", async ({ event, context }) => {
   await markGraduated(context.db, event, event.args.token, "pons");
 });
 
@@ -87,32 +119,47 @@ ponder.on("TokenRegistry:Graduated", async ({ event, context }) => {
   await markGraduated(context.db, event, event.args.token, "registry");
 });
 
-// PLACEHOLDER: Pons V2 trade event, used for 24h volume and trading stats.
-ponder.on("PonsV2:Trade", async ({ event, context }) => {
-  const { token: address, trader, isBuy, ethAmount, tokenAmount } = event.args;
-  const row = await context.db.find(token, { address });
+// Trades on a Pontoon token's Pons V2 bonding curve. Price and progress come from the curve state.
+async function recordTrade(
+  db: Db,
+  client: { readContract: (args: any) => Promise<any> },
+  event: EventLike & { log: { address: `0x${string}` } },
+  trader: `0x${string}`,
+  isBuy: boolean,
+  ethAmount: bigint,
+  tokenAmount: bigint,
+) {
+  const curve = event.log.address;
+  const address = (await client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "token" })) as `0x${string}`;
+  const row = await db.find(token, { address });
   if (!row) return;
 
-  const progress = row.graduated
-    ? 10_000n
-    : await context.client.readContract({
-        abi: PonsV2FactoryAbi,
-        address: event.log.address,
-        functionName: "curveProgressBps",
-        args: [address],
-      });
-  const totalSupply = await context.client.readContract({ abi: erc20Abi, address, functionName: "totalSupply" });
-  const lastPriceWei = tokenAmount === 0n ? row.lastPriceWei : (ethAmount * 10n ** 18n) / tokenAmount;
-  await context.db.update(token, { address }).set({
+  const [quoteReserve, realQuoteReserve, threshold, graduated, tokenReserve, totalSupply] = (await Promise.all([
+    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "quoteReserve" }),
+    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "realQuoteReserve" }),
+    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduationThreshold" }),
+    client.readContract({ abi: PonsV2CurveAbi, address: curve, functionName: "graduated" }),
+    client.readContract({ abi: erc20Abi, address, functionName: "balanceOf", args: [curve] }),
+    client.readContract({ abi: erc20Abi, address, functionName: "totalSupply" }),
+  ])) as [bigint, bigint, bigint, boolean, bigint, bigint];
+
+  let lastPriceWei = row.lastPriceWei;
+  if (!graduated && tokenReserve > 0n) lastPriceWei = (quoteReserve * 10n ** 18n) / tokenReserve;
+  else if (tokenAmount > 0n) lastPriceWei = (ethAmount * 10n ** 18n) / tokenAmount;
+
+  let progress = threshold === 0n ? 0 : Number((realQuoteReserve * 10_000n) / threshold);
+  if (graduated || row.graduated || progress > 10_000) progress = 10_000;
+
+  await db.update(token, { address }).set({
     lastPriceWei,
     marketCapEth: (lastPriceWei * totalSupply) / 10n ** 18n,
     volumeEth: row.volumeEth + ethAmount,
     tradeCount: row.tradeCount + 1,
     lastTradeAt: ts(event),
-    curveProgressBps: Number(progress),
+    curveProgressBps: progress,
   });
 
-  await context.db.insert(trade).values({
+  await db.insert(trade).values({
     id: event.id,
     token: address,
     trader,
@@ -122,5 +169,15 @@ ponder.on("PonsV2:Trade", async ({ event, context }) => {
     timestamp: ts(event),
     txHash: event.transaction.hash,
   });
-  await bumpStats(context.db, (s) => ({ volumeEth: s.volumeEth + ethAmount, tradeCount: s.tradeCount + 1 }));
+  await bumpStats(db, (s) => ({ volumeEth: s.volumeEth + ethAmount, tradeCount: s.tradeCount + 1 }));
+}
+
+ponder.on("PonsV2Curve:CurveBuy", async ({ event, context }) => {
+  const { recipient, quoteIn, tokensOut } = event.args;
+  await recordTrade(context.db, context.client, event, recipient, true, quoteIn, tokensOut);
+});
+
+ponder.on("PonsV2Curve:CurveSell", async ({ event, context }) => {
+  const { seller, tokensIn, quoteOut } = event.args;
+  await recordTrade(context.db, context.client, event, seller, false, quoteOut, tokensIn);
 });

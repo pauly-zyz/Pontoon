@@ -11,7 +11,7 @@ export const PontoonLauncherAbi = [
       {
         "name": "ponsFactory_",
         "type": "address",
-        "internalType": "contract IPonsV2Factory"
+        "internalType": "contract IPonsV2LaunchFactory"
       },
       {
         "name": "registry_",
@@ -74,6 +74,19 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "function",
+    "name": "ETH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MAX_PLATFORM_FEE_BPS",
     "inputs": [],
     "outputs": [
@@ -94,6 +107,19 @@ export const PontoonLauncherAbi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "creatorTaxBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -182,7 +208,27 @@ export const PontoonLauncherAbi = [
             "internalType": "string"
           },
           {
-            "name": "metadataURI",
+            "name": "logo",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "twitter",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "telegram",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "website",
             "type": "string",
             "internalType": "string"
           }
@@ -232,6 +278,45 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "function",
+    "name": "launchConfigId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "launchCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "launchFee",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "launchWithDefaultConfig",
     "inputs": [
       {
@@ -250,7 +335,27 @@ export const PontoonLauncherAbi = [
             "internalType": "string"
           },
           {
-            "name": "metadataURI",
+            "name": "logo",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "twitter",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "telegram",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "website",
             "type": "string",
             "internalType": "string"
           }
@@ -328,7 +433,7 @@ export const PontoonLauncherAbi = [
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IPonsV2Factory"
+        "internalType": "contract IPonsV2LaunchFactory"
       }
     ],
     "stateMutability": "view"
@@ -369,6 +474,32 @@ export const PontoonLauncherAbi = [
     "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCreatorTaxBps",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setLaunchConfigId",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -441,6 +572,63 @@ export const PontoonLauncherAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "CreatorTaxSet",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitialBuy",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "ethIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokensOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LaunchConfigIdSet",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -554,22 +742,47 @@ export const PontoonLauncherAbi = [
         "internalType": "address"
       },
       {
-        "name": "name",
-        "type": "string",
+        "name": "meta",
+        "type": "tuple",
         "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "symbol",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
+        "internalType": "struct PontoonLauncher.TokenMeta",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "logo",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "twitter",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "telegram",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "website",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
       }
     ],
     "anonymous": false
@@ -602,6 +815,17 @@ export const PontoonLauncherAbi = [
   },
   {
     "type": "error",
+    "name": "InsufficientLaunchFee",
+    "inputs": [
+      {
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "IsPaused",
     "inputs": []
   },
@@ -626,6 +850,11 @@ export const PontoonLauncherAbi = [
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "PonsLaunchDisabled",
+    "inputs": []
   },
   {
     "type": "error",

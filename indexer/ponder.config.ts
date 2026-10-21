@@ -6,11 +6,14 @@ import { CTOManagerAbi } from "./abis/CTOManagerAbi";
 import { FeeVaultAbi } from "./abis/FeeVaultAbi";
 import { HolderRewardsAbi } from "./abis/HolderRewardsAbi";
 import { PlatformTreasuryAbi } from "./abis/PlatformTreasuryAbi";
+import { PonsV2CurveAbi } from "./abis/PonsV2CurveAbi";
 import { PonsV2FactoryAbi } from "./abis/PonsV2FactoryAbi";
 import { PontoonLauncherAbi } from "./abis/PontoonLauncherAbi";
 import { TokenRegistryAbi } from "./abis/TokenRegistryAbi";
 
-const chainId = Number(process.env.PONDER_CHAIN_ID ?? 31337);
+const chainId = Number(process.env.PONDER_CHAIN_ID ?? 4663);
+// Live Pons V2 launch factory on Robinhood Chain mainnet (also present on a local mainnet fork).
+const PONS_FACTORY_MAINNET = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 const startBlock = Number(process.env.PONDER_START_BLOCK ?? 0);
 
 function addr(name: string): Address {
@@ -27,8 +30,8 @@ export default createConfig({
     robinhood: {
       id: chainId,
       rpc: process.env.PONDER_RPC_URL ?? "http://127.0.0.1:8545",
-      // Local anvil chains get reset often; never cache their RPC responses.
-      cacheRpcRequests: chainId !== 31337,
+      // Local forks get reset often; never cache their RPC responses.
+      cacheRpcRequests: process.env.PONDER_LOCAL_FORK !== "true",
     },
   },
   contracts: {
@@ -69,7 +72,23 @@ export default createConfig({
       }),
       startBlock,
     },
-    // PLACEHOLDER ABI: Graduated + Trade from Pons V2. Events for tokens not launched via Pontoon are ignored.
-    PonsV2: { chain: "robinhood", abi: PonsV2FactoryAbi, address: addr("PONS_FACTORY_ADDRESS"), startBlock },
+    // Pons V2 bonding curve of each Pontoon token (CurveBuy / CurveSell), from TokenRegistry.TokenRegistered.
+    PonsV2Curve: {
+      chain: "robinhood",
+      abi: PonsV2CurveAbi,
+      address: factory({
+        address: registry,
+        event: getAbiItem({ abi: TokenRegistryAbi, name: "TokenRegistered" }),
+        parameter: "curve",
+      }),
+      startBlock,
+    },
+    // Pons V2 factory: PoolGraduated. Events for tokens not launched via Pontoon are ignored.
+    PonsV2: {
+      chain: "robinhood",
+      abi: PonsV2FactoryAbi,
+      address: (process.env.PONS_FACTORY_ADDRESS || PONS_FACTORY_MAINNET) as Address,
+      startBlock,
+    },
   },
 });

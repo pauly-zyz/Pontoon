@@ -29,3 +29,10 @@ ponder.on("BuybackExecutor:BuybackExecuted", async ({ event, context }) => {
     data: { tokensBurned },
   });
 });
+
+// After graduation, unspent buyback ETH goes to the token's stakers instead (no V4 buyback route yet).
+ponder.on("BuybackExecutor:BuybackRedirectedToRewards", async ({ event, context }) => {
+  const { token: address, amount } = event.args;
+  await bumpStats(context.db, (s) => ({ buybackRedirected: s.buybackRedirected + amount }));
+  await logActivity(context.db, event, "buyback_to_stakers", { token: address, amount });
+});

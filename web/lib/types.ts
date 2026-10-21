@@ -14,6 +14,7 @@ export type Token = {
   isMemestock: boolean;
   vault: Address;
   holderRewards: Address;
+  curve: Address; // Pons V2 bonding curve
   launchedAt: number;
   launchTx: Hex;
   graduated: boolean;

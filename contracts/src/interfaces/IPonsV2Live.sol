@@ -138,6 +138,8 @@ interface IPonsV2Curve {
     function quoteReserve() external view returns (uint256);
     /// @notice Real ETH raised so far; the curve graduates when it reaches graduationThreshold().
     function realQuoteReserve() external view returns (uint256);
+    /// @notice Tokens left on the curve. Price = quoteReserve / tokenReserve (constant product).
+    function tokenReserve() external view returns (uint256);
     function creatorTaxBps() external view returns (uint16);
     function launchedAt() external view returns (uint256);
     function graduationThreshold() external view returns (uint256);

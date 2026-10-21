@@ -2,12 +2,12 @@
 
 import { useWallet } from "@/lib/wallet";
 import { useState } from "react";
-import { erc20Abi, formatUnits, maxUint256, type Address } from "viem";
-import { useBalance, useReadContract, useReadContracts } from "wagmi";
+import { erc20Abi, formatUnits, maxUint256, zeroAddress } from "viem";
+import { useBalance, useReadContracts, useSimulateContract } from "wagmi";
 import { BuybackExecutorAbi } from "@/lib/abis/BuybackExecutorAbi";
 import { FeeVaultAbi } from "@/lib/abis/FeeVaultAbi";
 import { HolderRewardsAbi } from "@/lib/abis/HolderRewardsAbi";
-import { SwapRouteAbi } from "@/lib/abis/SwapRouteAbi";
+import { PonsV2CurveAbi } from "@/lib/abis/PonsV2CurveAbi";
 import { tryParse, withSlippage } from "@/lib/amount";
 import { contracts, CONTRACTS_READY, PARAMS } from "@/lib/config";
 import { formatEth, formatTokens } from "@/lib/format";
@@ -58,114 +58,223 @@ function SlippagePicker({ value, onChange }: { value: number; onChange: (v: numb
   );
 }
 
-const routeFor = (t: Token): Address | undefined => (t.graduated ? contracts.v4Adapter : contracts.ponsRouter);
+const BPS = 10_000n;
 
-/** Buy through the Pons V2 curve router, or the Uniswap V4 adapter after graduation. */
+/** Live state of a token's Pons V2 bonding curve. */
+function useCurve(token: Token) {
+  const enabled = CONTRACTS_READY && Boolean(token.curve) && token.curve !== zeroAddress;
+  const reads = useReadContracts({
+    contracts: [
+      { address: token.curve, abi: PonsV2CurveAbi, functionName: "quoteReserve" },
+      { address: token.curve, abi: PonsV2CurveAbi, functionName: "tokenReserve" },
+      { address: token.curve, abi: PonsV2CurveAbi, functionName: "realQuoteReserve" },
+      { address: token.curve, abi: PonsV2CurveAbi, functionName: "creatorTaxBps" },
+      { address: token.curve, abi: PonsV2CurveAbi, functionName: "graduated" },
+    ],
+    query: { enabled, refetchInterval: 8_000 },
+  });
+  const quoteReserve = reads.data?.[0]?.result;
+  const tokenReserve = reads.data?.[1]?.result;
+  const realQuoteReserve = reads.data?.[2]?.result ?? 0n;
+  const taxBps = BigInt(reads.data?.[3]?.result ?? PARAMS.creatorTaxBps);
+  const graduated = reads.data?.[4]?.result ?? token.graduated;
+  const feeBps = BigInt(PARAMS.curveFeeBps) + taxBps;
+  const ready = enabled && quoteReserve !== undefined && tokenReserve !== undefined && tokenReserve > 0n;
+
+  /** Tokens out for `ethIn` (curve fee + creator tax are taken from the ETH first). */
+  const quoteBuy = (ethIn: bigint) => {
+    if (!ready || ethIn <= 0n) return undefined;
+    const net = (ethIn * (BPS - feeBps)) / BPS;
+    return (tokenReserve! * net) / (quoteReserve! + net);
+  };
+  /** ETH out for `tokensIn` (fees are taken from the ETH proceeds). */
+  const quoteSell = (tokensIn: bigint) => {
+    if (!ready || tokensIn <= 0n) return undefined;
+    let gross = (quoteReserve! * tokensIn) / (tokenReserve! + tokensIn);
+    if (gross > realQuoteReserve) gross = realQuoteReserve;
+    return (gross * (BPS - feeBps)) / BPS;
+  };
+  return { enabled, ready, graduated, taxBps, quoteBuy, quoteSell };
+}
+
+/** Buy and sell on the token's Pons V2 bonding curve. */
 export function TradePanel({ token }: { token: Token }) {
   const { address: user } = useWallet();
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [slippage, setSlippage] = useState(300);
   const tx = useTx();
-  const router = routeFor(token);
-  const ethIn = tryParse(amount);
-  const enabled = CONTRACTS_READY && Boolean(router);
+  const curve = useCurve(token);
+  const value = tryParse(amount);
 
-  const quote = useReadContract({
-    address: router,
-    abi: SwapRouteAbi,
-    functionName: "quoteExactETHForTokens",
-    args: [token.address, token.quoteAsset, ethIn ?? 0n],
-    query: { enabled: enabled && Boolean(ethIn) },
-  });
   const ethBal = useBalance({ address: user, query: { enabled: Boolean(user) } });
-  const minOut = quote.data ? withSlippage(quote.data, slippage) : 0n;
+  const tokenReads = useReadContracts({
+    contracts: [
+      { address: token.address, abi: erc20Abi, functionName: "balanceOf", args: [user!] },
+      { address: token.address, abi: erc20Abi, functionName: "allowance", args: [user!, token.curve] },
+    ],
+    query: { enabled: curve.enabled && Boolean(user), refetchInterval: 8_000 },
+  });
+  const tokenBal = tokenReads.data?.[0]?.result ?? 0n;
+  const allowance = tokenReads.data?.[1]?.result ?? 0n;
 
-  const buy = () =>
-    router &&
-    ethIn &&
-    user &&
-    tx.send((write) =>
-      write({
-        address: router,
-        abi: SwapRouteAbi,
-        functionName: "swapExactETHForTokens",
-        args: [token.address, token.quoteAsset, minOut, user],
-        value: ethIn,
-      }),
+  const out = value ? (side === "buy" ? curve.quoteBuy(value) : curve.quoteSell(value)) : undefined;
+  const minOut = out ? withSlippage(out, slippage) : 0n;
+  const limit = side === "buy" ? ethBal.data?.value : tokenBal;
+  const tooMuch = value !== null && limit !== undefined && value > limit;
+  const needsApproval = side === "sell" && value !== null && allowance < value;
+
+  async function submit() {
+    if (!value || !user || !out) return;
+    const target = token.curve;
+    if (side === "buy") {
+      const ok = await tx.send((write) =>
+        write({ address: target, abi: PonsV2CurveAbi, functionName: "buy", args: [value, minOut, user], value }),
+      );
+      if (ok) setAmount("");
+      return;
+    }
+    if (needsApproval) {
+      const ok = await tx.send((write) =>
+        write({ address: token.address, abi: erc20Abi, functionName: "approve", args: [target, value] }),
+      );
+      if (!ok) return;
+    }
+    const done = await tx.send((write) =>
+      write({ address: target, abi: PonsV2CurveAbi, functionName: "sell", args: [value, minOut, user] }),
     );
+    if (done) setAmount("");
+  }
 
+  if (curve.graduated) {
+    return (
+      <Card>
+        <CardTitle aside={<span className="text-xs text-muted">Uniswap V4</span>}>Trade</CardTitle>
+        <p className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs leading-relaxed text-muted">
+          This token graduated from the bonding curve and now trades in its Pons V2 pool on Uniswap V4. In-app V4 trading
+          is coming soon.
+        </p>
+      </Card>
+    );
+  }
+
+  const unit = side === "buy" ? "ETH" : token.symbol;
   return (
     <Card>
-      <CardTitle aside={<span className="text-xs text-muted">{token.graduated ? "via Uniswap V4" : "via Pons V2 curve"}</span>}>
-        Trade
-      </CardTitle>
+      <CardTitle aside={<span className="text-xs text-muted">via Pons V2 curve</span>}>Trade</CardTitle>
       <Tabs
         tabs={[
           { value: "buy", label: "Buy" },
           { value: "sell", label: "Sell" },
         ]}
         value={side}
-        onChange={setSide}
+        onChange={(v) => {
+          setSide(v);
+          setAmount("");
+        }}
       />
-      {side === "sell" ? (
-        <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
-          Selling is waiting on the real Pons V2 router ABI (the placeholder interface only supports buys).
-        </p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          <AmountInput value={amount} onChange={setAmount} unit="ETH" />
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span>Balance: {ethBal.data ? `${formatEth(ethBal.data.value)} ETH` : "—"}</span>
-            <SlippagePicker value={slippage} onChange={setSlippage} />
-          </div>
-          <div className="rounded-xl bg-bg/50 px-3 py-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted">Estimated received</span>
-              <span className="tabular font-medium">{quote.data ? `${formatTokens(quote.data)} ${token.symbol}` : "—"}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted">Minimum received</span>
-              <span className="tabular">{quote.data ? formatTokens(minOut) : "—"}</span>
-            </div>
-          </div>
-          <Button className="w-full py-3" disabled={!enabled || !tx.ready || !ethIn || !quote.data || tx.busy} onClick={buy}>
-            {!enabled ? "Trading disabled" : !tx.ready ? "Connect wallet" : tx.busy ? "Processing…" : `Buy ${token.symbol}`}
-          </Button>
-          <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
+      <div className="mt-4 space-y-3">
+        <AmountInput
+          value={amount}
+          onChange={setAmount}
+          unit={unit}
+          onMax={side === "sell" ? () => setAmount(formatUnits(tokenBal, 18)) : undefined}
+        />
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>
+            Balance:{" "}
+            {side === "buy"
+              ? ethBal.data
+                ? `${formatEth(ethBal.data.value)} ETH`
+                : "—"
+              : user && curve.enabled
+                ? `${formatTokens(tokenBal)} ${token.symbol}`
+                : "—"}
+          </span>
+          <SlippagePicker value={slippage} onChange={setSlippage} />
         </div>
-      )}
+        <div className="rounded-xl bg-bg/50 px-3 py-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted">Estimated received</span>
+            <span className="tabular font-medium">
+              {out ? (side === "buy" ? `${formatTokens(out)} ${token.symbol}` : `${formatEth(out, 5)} ETH`) : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted">Minimum received</span>
+            <span className="tabular">{out ? (side === "buy" ? formatTokens(minOut) : formatEth(minOut, 5)) : "—"}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted">Fees</span>
+            <span className="tabular">
+              {PARAMS.curveFeeBps / 100}% curve + {Number(curve.taxBps) / 100}% creator fee
+            </span>
+          </div>
+        </div>
+        <Button
+          className="w-full py-3"
+          disabled={!curve.enabled || !tx.ready || !value || !out || tooMuch || tx.busy}
+          onClick={submit}
+        >
+          {!curve.enabled
+            ? "Trading disabled"
+            : !tx.ready
+              ? "Connect wallet"
+              : tx.busy
+                ? "Processing…"
+                : tooMuch
+                  ? "Exceeds balance"
+                  : side === "buy"
+                    ? `Buy ${token.symbol}`
+                    : needsApproval
+                      ? `Approve & sell ${token.symbol}`
+                      : `Sell ${token.symbol}`}
+        </Button>
+        <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
+      </div>
     </Card>
   );
 }
 
-/** Pending fee in the vault and the permissionless distribute() call. */
+/** Creator fees waiting in Pons + the vault, and the permissionless distribute() call. */
 export function VaultPanel({ token }: { token: Token }) {
+  const { address: user } = useWallet();
   const tx = useTx();
-  const pending = useReadContract({
-    address: token.vault,
-    abi: FeeVaultAbi,
-    functionName: "pendingDistribution",
+  const reads = useReadContracts({
+    contracts: [
+      { address: token.vault, abi: FeeVaultAbi, functionName: "pendingDistribution" },
+      { address: token.vault, abi: FeeVaultAbi, functionName: "claimableFromPons" },
+    ],
     query: { enabled: CONTRACTS_READY, refetchInterval: 10_000 },
   });
-  const amount = pending.data ?? 0n;
+  // distribute() first harvests the curve and claims from the Pons FeeEscrow, so simulate it to see
+  // whether anything is ready (fees still inside the curve are not visible from a plain read).
+  const sim = useSimulateContract({
+    address: token.vault,
+    abi: FeeVaultAbi,
+    functionName: "distribute",
+    account: user,
+    query: { enabled: CONTRACTS_READY && Boolean(user), refetchInterval: 15_000 },
+  });
+  const known = (reads.data?.[0]?.result ?? 0n) + (reads.data?.[1]?.result ?? 0n);
   const incentive = (() => {
-    const i = (amount * BigInt(PARAMS.callerIncentiveBps)) / 10_000n;
+    const i = (known * BigInt(PARAMS.callerIncentiveBps)) / 10_000n;
     const cap = 5n * 10n ** 15n;
     return i > cap ? cap : i;
   })();
+  const ready = user ? sim.isSuccess : known > 0n;
 
   return (
     <Card>
       <CardTitle>FeeVault</CardTitle>
       <dl className="tabular space-y-1.5 text-sm">
         <div className="flex justify-between">
-          <dt className="text-muted">Awaiting distribution</dt>
-          <dd className="font-semibold">{CONTRACTS_READY ? `${formatEth(amount)} ETH` : "—"}</dd>
+          <dt className="text-muted">Ready to distribute</dt>
+          <dd className="font-semibold">{CONTRACTS_READY ? `${formatEth(known)} ETH` : "—"}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-muted">Your incentive</dt>
-          <dd>{CONTRACTS_READY ? `${formatEth(incentive, 5)} ETH` : "—"}</dd>
+          <dd>{CONTRACTS_READY ? `≥ ${formatEth(incentive, 5)} ETH` : "—"}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-muted">Total fees received</dt>
@@ -175,23 +284,27 @@ export function VaultPanel({ token }: { token: Token }) {
       <Button
         variant="secondary"
         className="mt-4 w-full"
-        disabled={!CONTRACTS_READY || !tx.ready || amount === 0n || tx.busy}
+        disabled={!CONTRACTS_READY || !tx.ready || !ready || tx.busy}
         onClick={() => tx.send((write) => write({ address: token.vault, abi: FeeVaultAbi, functionName: "distribute" }))}
       >
-        {tx.busy ? "Processing…" : "Run distribute()"}
+        {tx.busy ? "Processing…" : CONTRACTS_READY && tx.ready && !ready ? "Nothing to distribute yet" : "Run distribute()"}
       </Button>
-      <p className="mt-2 text-xs text-muted">Anyone can call it. The caller earns 0.5% (max 0.005 ETH).</p>
+      <p className="mt-2 text-xs text-muted">
+        Anyone can call it. It collects this token&apos;s trading fees from Pons V2 and splits them. The caller earns 0.5%
+        (max 0.005 ETH).
+      </p>
       <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
     </Card>
   );
 }
 
-/** Pending buyback ETH and a permissionless buybackAndBurn with a quoted minOut. */
+/** Pending buyback ETH: buyback-and-burn on the curve, or (after graduation) sent to stakers. */
 export function BuybackPanel({ token }: { token: Token }) {
   const tx = useTx();
   const [slippage, setSlippage] = useState(300);
   const executor = contracts.buybackExecutor;
   const enabled = CONTRACTS_READY && Boolean(executor);
+  const curve = useCurve(token);
   const reads = useReadContracts({
     contracts: [
       { address: executor, abi: BuybackExecutorAbi, functionName: "pendingETH", args: [token.address] },
@@ -204,16 +317,10 @@ export function BuybackPanel({ token }: { token: Token }) {
   const cap = reads.data?.[1]?.result ?? 0n;
   const paused = reads.data?.[2]?.result ?? false;
   const amount = pendingEth < cap ? pendingEth : cap;
-
-  const router = routeFor(token);
-  const quote = useReadContract({
-    address: router,
-    abi: SwapRouteAbi,
-    functionName: "quoteExactETHForTokens",
-    args: [token.address, token.quoteAsset, amount],
-    query: { enabled: enabled && Boolean(router) && amount > 0n },
-  });
-  const minOut = quote.data ? withSlippage(quote.data, slippage) : 0n;
+  // The executor pays the same curve fee + creator tax as any buyer.
+  const quote = curve.quoteBuy(amount);
+  const minOut = quote ? withSlippage(quote, slippage) : 0n;
+  const graduated = curve.graduated;
 
   return (
     <Card>
@@ -223,10 +330,12 @@ export function BuybackPanel({ token }: { token: Token }) {
           <dt className="text-muted">ETH awaiting buyback</dt>
           <dd className="font-semibold">{enabled ? `${formatEth(pendingEth)} ETH` : "—"}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-muted">Cap per execution</dt>
-          <dd>{enabled ? `${formatEth(cap)} ETH` : `min(${PARAMS.maxBuybackEth} ETH, 1% of liquidity)`}</dd>
-        </div>
+        {!graduated && (
+          <div className="flex justify-between">
+            <dt className="text-muted">Cap per execution</dt>
+            <dd>{enabled ? `${formatEth(cap)} ETH` : `min(${PARAMS.maxBuybackEth} ETH, 1% of liquidity)`}</dd>
+          </div>
+        )}
         <div className="flex justify-between">
           <dt className="text-muted">Burned so far</dt>
           <dd>
@@ -234,35 +343,65 @@ export function BuybackPanel({ token }: { token: Token }) {
           </dd>
         </div>
       </dl>
-      <div className="mt-3 flex justify-end">
-        <SlippagePicker value={slippage} onChange={setSlippage} />
-      </div>
-      <Button
-        variant="secondary"
-        className="mt-2 w-full"
-        disabled={!enabled || !tx.ready || paused || amount === 0n || minOut === 0n || tx.busy}
-        onClick={() =>
-          executor &&
-          tx.send((write) =>
-            write({
-              address: executor,
-              abi: BuybackExecutorAbi,
-              functionName: "buybackAndBurn",
-              args: [token.address, amount, minOut],
-            }),
-          )
-        }
-      >
-        {paused
-          ? "Buybacks paused"
-          : tx.busy
-            ? "Processing…"
-            : enabled && pendingEth === 0n
-              ? "No ETH queued for buyback"
-              : enabled && cap === 0n
-                ? "Not enough pool liquidity"
-                : `Buyback ${formatEth(amount)} ETH`}
-      </Button>
+      {graduated ? (
+        <>
+          <Button
+            variant="secondary"
+            className="mt-4 w-full"
+            disabled={!enabled || !tx.ready || pendingEth === 0n || tx.busy}
+            onClick={() =>
+              executor &&
+              tx.send((write) =>
+                write({
+                  address: executor,
+                  abi: BuybackExecutorAbi,
+                  functionName: "redirectToRewards",
+                  args: [token.address],
+                }),
+              )
+            }
+          >
+            {tx.busy ? "Processing…" : enabled && pendingEth === 0n ? "No ETH queued" : "Send to stakers"}
+          </Button>
+          <p className="mt-2 text-xs text-muted">
+            This token graduated to Uniswap V4. Until V4 buybacks are supported, anyone can send its buyback ETH to the
+            stakers instead.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="mt-3 flex justify-end">
+            <SlippagePicker value={slippage} onChange={setSlippage} />
+          </div>
+          <Button
+            variant="secondary"
+            className="mt-2 w-full"
+            disabled={!enabled || !tx.ready || paused || amount === 0n || minOut === 0n || tx.busy}
+            onClick={() =>
+              executor &&
+              tx.send((write) =>
+                write({
+                  address: executor,
+                  abi: BuybackExecutorAbi,
+                  functionName: "buybackAndBurn",
+                  args: [token.address, amount, minOut],
+                }),
+              )
+            }
+          >
+            {paused
+              ? "Buybacks paused"
+              : tx.busy
+                ? "Processing…"
+                : enabled && pendingEth === 0n
+                  ? "No ETH queued for buyback"
+                  : enabled && cap === 0n
+                    ? "Not enough pool liquidity"
+                    : `Buyback ${formatEth(amount)} ETH`}
+          </Button>
+          <p className="mt-2 text-xs text-muted">Buys on the bonding curve and sends the tokens to 0x…dEaD.</p>
+        </>
+      )}
       <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
     </Card>
   );

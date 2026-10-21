@@ -30,6 +30,7 @@ const emptyStats: Omit<StatsRow, "id"> = {
   callerIncentives: 0n,
   buybackEthSpent: 0n,
   buybackCount: 0,
+  buybackRedirected: 0n,
   rewardsClaimed: 0n,
   volumeEth: 0n,
   tradeCount: 0,
@@ -50,6 +51,7 @@ export function newToken(fields: {
   creator: Address;
   vault: Address;
   holderRewards: Address;
+  curve: Address;
   quoteAsset: Address;
   isMemestock: boolean;
   event: EventLike;
@@ -133,4 +135,22 @@ export async function logActivity(
     blockNumber: event.block.number,
     txHash: event.transaction.hash,
   });
+}
+
+/** Token metadata as the web app reads it: a base64 JSON data: URI. */
+export function encodeMetadata(meta: {
+  description: string;
+  logo: string;
+  twitter: string;
+  telegram: string;
+  website: string;
+}): string {
+  const json = JSON.stringify({
+    description: meta.description || undefined,
+    image: meta.logo || undefined,
+    twitter: meta.twitter || undefined,
+    telegram: meta.telegram || undefined,
+    website: meta.website || undefined,
+  });
+  return `data:application/json;base64,${Buffer.from(json, "utf8").toString("base64")}`;
 }

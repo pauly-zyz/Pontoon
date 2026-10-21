@@ -12,21 +12,6 @@ export const BuybackExecutorAbi = [
         "name": "registry_",
         "type": "address",
         "internalType": "contract ITokenRegistry"
-      },
-      {
-        "name": "ponsFactory_",
-        "type": "address",
-        "internalType": "contract IPonsV2Factory"
-      },
-      {
-        "name": "curveRouter_",
-        "type": "address",
-        "internalType": "contract ISwapRoute"
-      },
-      {
-        "name": "v4Router_",
-        "type": "address",
-        "internalType": "contract ISwapRoute"
       }
     ],
     "stateMutability": "nonpayable"
@@ -98,19 +83,6 @@ export const BuybackExecutorAbi = [
       }
     ],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "curveRouter",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract ISwapRoute"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -191,16 +163,22 @@ export const BuybackExecutorAbi = [
   },
   {
     "type": "function",
-    "name": "ponsFactory",
-    "inputs": [],
-    "outputs": [
+    "name": "redirectToRewards",
+    "inputs": [
       {
-        "name": "",
+        "name": "token",
         "type": "address",
-        "internalType": "contract IPonsV2Factory"
+        "internalType": "address"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -221,25 +199,6 @@ export const BuybackExecutorAbi = [
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "routeFor",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract ISwapRoute"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -294,6 +253,25 @@ export const BuybackExecutorAbi = [
   },
   {
     "type": "function",
+    "name": "totalRedirected",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "transferOwnership",
     "inputs": [
       {
@@ -304,19 +282,6 @@ export const BuybackExecutorAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "v4Router",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract ISwapRoute"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "event",
@@ -346,6 +311,25 @@ export const BuybackExecutorAbi = [
   {
     "type": "event",
     "name": "BuybackFunded",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BuybackRedirectedToRewards",
     "inputs": [
       {
         "name": "token",
@@ -407,12 +391,22 @@ export const BuybackExecutorAbi = [
   },
   {
     "type": "error",
+    "name": "Graduated",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientPending",
     "inputs": []
   },
   {
     "type": "error",
     "name": "IsPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotGraduated",
     "inputs": []
   },
   {

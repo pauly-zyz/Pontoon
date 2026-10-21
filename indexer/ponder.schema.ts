@@ -16,12 +16,13 @@ export const token = onchainTable(
     isMemestock: t.boolean().notNull(),
     vault: t.hex().notNull(),
     holderRewards: t.hex().notNull(),
+    curve: t.hex().notNull(), // Pons V2 bonding curve
     launchedAt: t.integer().notNull(),
     launchBlock: t.bigint().notNull(),
     launchTx: t.hex().notNull(),
     graduated: t.boolean().notNull(),
     graduatedAt: t.integer(),
-    // PLACEHOLDER: read from Pons V2 curveProgressBps() on every trade (10_000 = graduated)
+    // Pons V2 curve progress: realQuoteReserve / graduationThreshold, read on every trade (10_000 = graduated)
     curveProgressBps: t.integer().notNull(),
 
     // Active and queued fee config (basis points of the post-platform remainder)
@@ -51,11 +52,11 @@ export const token = onchainTable(
     stakerCount: t.integer().notNull(),
     rewardsClaimed: t.bigint().notNull(),
 
-    // Trading (from the Pons V2 placeholder Trade event)
+    // Trading (Pons V2 CurveBuy / CurveSell)
     volumeEth: t.bigint().notNull(),
     tradeCount: t.integer().notNull(),
     lastTradeAt: t.integer(),
-    lastPriceWei: t.bigint().notNull(), // ETH (wei) per 1 whole token, from the last trade
+    lastPriceWei: t.bigint().notNull(), // ETH (wei) per 1 whole token: curve quoteReserve / tokenReserve
     marketCapEth: t.bigint().notNull(), // lastPriceWei * totalSupply / 1e18
 
     activeCtoRequestId: t.text(),
@@ -83,6 +84,7 @@ export const platformStats = onchainTable("platform_stats", (t) => ({
   callerIncentives: t.bigint().notNull(),
   buybackEthSpent: t.bigint().notNull(),
   buybackCount: t.integer().notNull(),
+  buybackRedirected: t.bigint().notNull(), // pending buyback ETH sent to stakers after graduation
   rewardsClaimed: t.bigint().notNull(),
   volumeEth: t.bigint().notNull(),
   tradeCount: t.integer().notNull(),

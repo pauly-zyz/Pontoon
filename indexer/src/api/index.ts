@@ -259,7 +259,8 @@ app.get("/api/treasury", async (c) => {
       ethSpent: stats?.buybackEthSpent ?? 0n,
       count: stats?.buybackCount ?? 0,
       // Funded but not yet executed (still held by BuybackExecutor).
-      ethPending: (stats?.buybackFunded ?? 0n) - (stats?.buybackEthSpent ?? 0n),
+      ethPending:
+        (stats?.buybackFunded ?? 0n) - (stats?.buybackEthSpent ?? 0n) - (stats?.buybackRedirected ?? 0n),
     },
     rewards: { funded: stats?.rewardsFunded ?? 0n, claimed: stats?.rewardsClaimed ?? 0n },
     platformTreasury: {

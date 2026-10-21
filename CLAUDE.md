@@ -7,9 +7,10 @@ stakers. Full product spec: `spec.md`.
 ## Repo layout
 
 - `contracts/` — Foundry. Seven contracts (PontoonLauncher, TokenRegistry, FeeVault, BuybackExecutor,
-  HolderRewards, PlatformTreasury, CTOManager). Pons V2 is a placeholder interface in
-  `src/interfaces/IPonsV2.sol` until the real ABI is available.
-- `indexer/` — Ponder 0.18. Indexes every Pontoon event plus Pons V2 `Graduated`/`Trade`, serves the
+  HolderRewards, PlatformTreasury, CTOManager), integrated with the live Pons V2 on Robinhood Chain
+  mainnet (`src/interfaces/IPonsV2Live.sol`, factory 0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e).
+  Fork tests in `test/fork/` run against the real Pons (`PONS_FORK_RPC`). Only ETH pairs are enabled.
+- `indexer/` — Ponder 0.18. Indexes every Pontoon event plus Pons V2 `PoolGraduated` and curve `CurveBuy`/`CurveSell`, serves the
   REST API the web app uses.
 - `web/` — Next.js 16 (App Router) + Tailwind 4 + wagmi/viem/RainbowKit. Deployed on Vercel (project
   root directory: `web`). With `NEXT_PUBLIC_INDEXER_URL` empty it runs in pre-launch mode (Robinhood
@@ -21,7 +22,7 @@ stakers. Full product spec: `spec.md`.
 - Contracts: `cd contracts && forge build && forge test`
 - Indexer: `cd indexer && npm run typecheck && npm run lint`
 - Web: `cd web && npx tsc --noEmit && npx eslint . && npx next build`
-- Full local stack: `indexer/scripts/local-demo.sh`, then `npm run dev` in `indexer/` and `web/`.
+- Full local stack (anvil fork of mainnet + real Pons V2): `indexer/scripts/local-demo.sh`, then `npm run dev` in `indexer/` and `web/`.
 - After contract changes: `forge build`, then `npm run abis` in `indexer/` and `web/`.
 
 ## Rules

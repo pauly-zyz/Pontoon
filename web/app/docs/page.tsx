@@ -13,17 +13,19 @@ const PARAM_ROWS: [string, string, string][] = [
   ["Creator payout", "Whatever is left", "Automatic"],
   ["Default", "40% buyback, 20% rewards, 40% creator", "A safe starting point"],
   ["Config change timelock", "24 hours", "Holders can see changes before they apply"],
-  ["Buyback cap per execution", "min(0.5 ETH, 1% of pool liquidity)", "Limits price impact and sandwich risk"],
+  ["Buyback cap per execution", "min(0.5 ETH, 1% of curve liquidity)", "Limits price impact and sandwich risk"],
+  ["Pons V2 launch fee", "0.0005 ETH", "Paid to Pons at launch, on top of any initial buy"],
+  ["Trading fees (bonding curve)", "1% curve fee + 3% creator fee", "The creator fee and 70% of the curve fee go to the FeeVault"],
   ["CTO timelock", "3 days + multisig approval", "Follows the Pons V2 flow"],
   ["Treasury withdrawal timelock", "48 hours", "Platform withdrawals are visible in advance"],
 ];
 
 const RISKS = [
   "The contracts have not been audited yet. Only use what you can afford to lose during testing.",
-  "The Pons V2 integration uses placeholder interfaces until the official ABI is available.",
+  "The Pons V2 bonding-curve contracts are not verified on the explorer; Pontoon's integration was tested against them on a mainnet fork.",
   "Buybacks can suffer slippage or sandwiching. minOut is mandatory and each execution is capped, but the risk does not go away.",
   "Rewards only go to stakers. Unstaked tokens (including those in liquidity pools) earn no ETH.",
-  "Tokenized-stock pairs depend on ETH liquidity into NVDA/AAPL/HOOD/USDG and on the rules in your jurisdiction.",
+  "Only ETH-paired launches are open for now. Stablecoin and tokenized-stock pairs come later.",
   "An emergency pause only stops new launches and buybacks; claims are never locked.",
 ];
 
@@ -34,9 +36,7 @@ export default function DocsPage() {
     ["BuybackExecutor", contracts.buybackExecutor],
     ["PlatformTreasury", contracts.treasury],
     ["CTOManager", contracts.ctoManager],
-    ["Pons V2 factory (placeholder)", contracts.ponsFactory],
-    ["Pons V2 router (placeholder)", contracts.ponsRouter],
-    ["Uniswap V4 adapter (placeholder)", contracts.v4Adapter],
+    ["Pons V2 launch factory", contracts.ponsFactory],
   ] as const;
 
   return (
@@ -50,11 +50,14 @@ export default function DocsPage() {
         <h2 className="mb-3 font-display text-xl font-semibold">Fee flow</h2>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-muted">
           <li>Traders buy or sell on Pons V2 (the bonding curve before graduation, Uniswap V4 after).</li>
-          <li>Pons V2 sends the creator fee in ETH to that token&apos;s FeeVault, not to the creator&apos;s wallet.</li>
-          <li>Anyone can call distribute() and earn a small incentive.</li>
+          <li>
+            Pons V2 credits the creator fee (a 3% creator tax plus 70% of the 1% curve fee) in ETH to that token&apos;s
+            FeeVault, not to the creator&apos;s wallet.
+          </li>
+          <li>Anyone can call distribute(), which collects those fees from Pons, and earn a small incentive.</li>
           <li>The FeeVault takes the platform fee and sends it to the PlatformTreasury.</li>
           <li>The rest is split between the creator payout, buyback-and-burn, and holder rewards.</li>
-          <li>The BuybackExecutor buys the token on the market and sends it to 0x…dEaD.</li>
+          <li>The BuybackExecutor buys the token on its bonding curve and sends it to 0x…dEaD.</li>
           <li>HolderRewards distributes ETH to stakers using a reward-per-share model.</li>
         </ol>
         <div className="mt-6">
@@ -83,9 +86,10 @@ export default function DocsPage() {
       <Card>
         <h2 className="mb-3 font-display text-xl font-semibold">Quote pairs & buybacks</h2>
         <p className="text-sm text-muted">
-          Creators pick ETH, USDG, or a tokenized stock (NVDA, AAPL, HOOD). For ETH pairs, buybacks swap ETH straight into the
-          token. For other pairs, ETH is swapped into the quote asset first, then into the token. Before graduation, buybacks go
-          through the Pons V2 bonding-curve router; after graduation, through the Uniswap V4 pool.
+          Launches are paired with ETH for now; USDG and tokenized-stock pairs (NVDA, AAPL, HOOD) come later. Buybacks buy the
+          token on its Pons V2 bonding curve with the buyback ETH. A token graduates to a Uniswap V4 pool once its curve
+          raises 4.2 ETH. Until V4 buybacks are supported, anyone can send a graduated token&apos;s buyback ETH to its
+          stakers instead.
         </p>
       </Card>
 
