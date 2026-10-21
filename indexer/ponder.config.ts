@@ -15,6 +15,11 @@ const chainId = Number(process.env.PONDER_CHAIN_ID ?? 4663);
 // Live Pons V2 launch factory on Robinhood Chain mainnet (also present on a local mainnet fork).
 const PONS_FACTORY_MAINNET = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 const startBlock = Number(process.env.PONDER_START_BLOCK ?? 0);
+// Mainnet has ~94M blocks: indexing from 0 would take days. Use the block of the official deployment
+// (contracts/deployments/4663.json "startBlock"), which also keeps test activity off the site.
+if (chainId === 4663 && process.env.PONDER_LOCAL_FORK !== "true" && !(startBlock > 0)) {
+  throw new Error("Set PONDER_START_BLOCK to the PontoonLauncher deployment block (see contracts/deployments/4663.json)");
+}
 
 function addr(name: string): Address {
   const value = process.env[name];

@@ -24,6 +24,7 @@ stakers. Full product spec: `spec.md`.
 - Web: `cd web && npx tsc --noEmit && npx eslint . && npx next build`
 - Full local stack (anvil fork of mainnet + real Pons V2): `indexer/scripts/local-demo.sh`, then `npm run dev` in `indexer/` and `web/`.
 - After contract changes: `forge build`, then `npm run abis` in `indexer/` and `web/`.
+- Going live (official deploy, indexer hosting, Vercel switch-on): follow `DEPLOY.md`.
 
 ## Rules
 
