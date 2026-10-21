@@ -22,3 +22,10 @@ constructor arguments from the creation transaction.
 
 Each token's FeeVault and HolderRewards are minimal-proxy clones of the two implementations; Blockscout
 shows them as proxies of the verified code.
+
+## Fallback: single file
+
+If the Standard JSON form does nothing, use **Solidity (Single file)** with the flattened source in
+`flat/<Contract>.sol`: compiler `v0.8.28+commit.7893614a`, EVM version `prague`, optimization **on**
+with **200** runs, contract name = the file name (e.g. `PontoonLauncher`), license MIT. Blockscout
+may mark it "partially verified" (only the metadata hash differs); the code is still public and checked.
