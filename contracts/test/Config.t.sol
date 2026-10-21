@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import {BaseTest} from "./Base.t.sol";
 import {FeeVault} from "../src/FeeVault.sol";
 import {PontoonLauncher} from "../src/PontoonLauncher.sol";
-import {FeeConfig} from "../src/interfaces/IPontoon.sol";
+import {FeeConfig, VaultWiring} from "../src/interfaces/IPontoon.sol";
 
 /// @notice Config bounds (buyback <= 80%, reward <= 50%) and the 24h timelock.
 contract ConfigBoundsTest is BaseTest {
@@ -13,8 +13,9 @@ contract ConfigBoundsTest is BaseTest {
     }
 
     function test_defaultConfig() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        (, address v) = launcher.launchWithDefaultConfig(_meta(), address(0), false);
+        (, address v) = launcher.launchWithDefaultConfig{value: 0.0005 ether}(_meta(), address(0), false);
         (uint16 b, uint16 r) = FeeVault(payable(v)).config();
         assertEq(b, 4_000);
         assertEq(r, 2_000);
@@ -29,21 +30,24 @@ contract ConfigBoundsTest is BaseTest {
     }
 
     function test_launch_revertsBuybackAbove80() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch(_meta(), address(0), false, _cfg(8_001, 0));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_001, 0));
     }
 
     function test_launch_revertsRewardAbove50() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch(_meta(), address(0), false, _cfg(0, 5_001));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(0, 5_001));
     }
 
     function test_launch_revertsSumAbove100() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(FeeVault.InvalidConfig.selector);
-        launcher.launch(_meta(), address(0), false, _cfg(8_000, 2_001));
+        launcher.launch{value: 0.0005 ether}(_meta(), address(0), false, _cfg(8_000, 2_001));
     }
 
     function test_queue_revertsOutOfBounds() public {
@@ -70,6 +74,12 @@ contract ConfigBoundsTest is BaseTest {
         }
     }
 
+    function _wiring() internal view returns (VaultWiring memory w) {
+        w = VaultWiring(
+            address(1), address(1), alice, address(1), address(1), address(1), address(1), address(1), address(1)
+        );
+    }
+
     function test_platformFee_capped() public {
         vm.startPrank(multisig);
         launcher.setPlatformFeeBps(3_000);
@@ -86,13 +96,13 @@ contract ConfigBoundsTest is BaseTest {
 
     function test_vaultCannotBeReinitialized() public {
         vm.expectRevert(FeeVault.AlreadyInitialized.selector);
-        vault.initialize(address(1), alice, address(1), address(1), address(1), address(1), _cfg(0, 0));
+        vault.initialize(_wiring(), _cfg(0, 0));
     }
 
     function test_implementationIsLocked() public {
         FeeVault impl = FeeVault(payable(launcher.feeVaultImpl()));
         vm.expectRevert(FeeVault.AlreadyInitialized.selector);
-        impl.initialize(address(1), alice, address(1), address(1), address(1), address(1), _cfg(0, 0));
+        impl.initialize(_wiring(), _cfg(0, 0));
     }
 }
 

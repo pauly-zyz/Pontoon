@@ -2,10 +2,13 @@
 pragma solidity ^0.8.28;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {FeeConfig, IPlatformConfig, IHolderRewards, IBuybackExecutor} from "./interfaces/IPontoon.sol";
+import {FeeConfig, IPlatformConfig, IHolderRewards, IBuybackExecutor, VaultWiring} from "./interfaces/IPontoon.sol";
+import {IPonsV2FeeEscrow, PonsV2Raw} from "./interfaces/IPonsV2Live.sol";
 
 /// @title FeeVault
-/// @notice One per token (EIP-1167 clone). Receives the Pons V2 creator fee in ETH and splits it:
+/// @notice One per token (EIP-1167 clone) and the token's Pons V2 creator-fee recipient.
+///         distribute() first pulls the fees in (sweeps the curve through the Pons fee harvester and
+///         claims from the Pons FeeEscrow), then splits them:
 ///         caller incentive -> platform fee -> buyback / holder rewards / creator payout.
 /// @dev No admin can withdraw buyback or reward funds. Creator payouts are pull-based.
 contract FeeVault is ReentrancyGuard {
@@ -19,12 +22,15 @@ contract FeeVault is ReentrancyGuard {
 
     // ---- Wiring (set once at initialize) ----
     address public token;
+    address public curve;
     address public admin;
     address public platformConfig; // PontoonLauncher, source of platformFeeBps
     address public holderRewards;
     address public buybackExecutor;
     address public treasury;
     address public ctoManager;
+    address public ponsFeeEscrow;
+    address public ponsMemeHook;
     bool private _initialized;
 
     // ---- Config ----
@@ -50,6 +56,7 @@ contract FeeVault is ReentrancyGuard {
     event ConfigCancelled(address indexed token);
     event CreatorClaimed(address indexed token, address indexed account, uint256 amount);
     event AdminChanged(address indexed token, address indexed oldAdmin, address indexed newAdmin);
+    event FeesCollected(address indexed token, bool harvested, uint256 claimed);
 
     error AlreadyInitialized();
     error NotAdmin();
@@ -72,31 +79,27 @@ contract FeeVault is ReentrancyGuard {
         _initialized = true;
     }
 
-    function initialize(
-        address token_,
-        address admin_,
-        address holderRewards_,
-        address buybackExecutor_,
-        address treasury_,
-        address ctoManager_,
-        FeeConfig calldata config_
-    ) external {
+    function initialize(VaultWiring calldata w, FeeConfig calldata config_) external {
         if (_initialized) revert AlreadyInitialized();
         if (
-            token_ == address(0) || admin_ == address(0) || holderRewards_ == address(0)
-                || buybackExecutor_ == address(0) || treasury_ == address(0) || ctoManager_ == address(0)
+            w.token == address(0) || w.curve == address(0) || w.admin == address(0) || w.holderRewards == address(0)
+                || w.buybackExecutor == address(0) || w.treasury == address(0) || w.ctoManager == address(0)
+                || w.ponsFeeEscrow == address(0) || w.ponsMemeHook == address(0)
         ) revert ZeroAddress();
         validateConfig(config_);
         _initialized = true;
-        token = token_;
-        admin = admin_;
+        token = w.token;
+        curve = w.curve;
+        admin = w.admin;
         platformConfig = msg.sender;
-        holderRewards = holderRewards_;
-        buybackExecutor = buybackExecutor_;
-        treasury = treasury_;
-        ctoManager = ctoManager_;
+        holderRewards = w.holderRewards;
+        buybackExecutor = w.buybackExecutor;
+        treasury = w.treasury;
+        ctoManager = w.ctoManager;
+        ponsFeeEscrow = w.ponsFeeEscrow;
+        ponsMemeHook = w.ponsMemeHook;
         config = config_;
-        emit ConfigApplied(token_, config_);
+        emit ConfigApplied(w.token, config_);
     }
 
     receive() external payable {
@@ -109,8 +112,31 @@ contract FeeVault is ReentrancyGuard {
     // ------------------------------------------------------------------
 
     /// @notice ETH currently waiting to be distributed (excludes unclaimed creator payouts).
+    ///         Does not include fees still held by Pons; see claimableFromPons().
     function pendingDistribution() public view returns (uint256) {
         return address(this).balance - totalCreatorOwed;
+    }
+
+    /// @notice Creator fees Pons has already credited to this vault in its FeeEscrow.
+    ///         Fees still inside the curve (not yet swept) are not included.
+    function claimableFromPons() public view returns (uint256) {
+        return IPonsV2FeeEscrow(ponsFeeEscrow).balanceOf(address(this));
+    }
+
+    /// @notice Permissionless. Pulls this token's creator fees from Pons into the vault:
+    ///         sweeps the curve via the Pons fee harvester, then claims from the FeeEscrow.
+    ///         Never reverts, so a Pons-side hiccup cannot block distributing what is already here.
+    function collectFees() public returns (uint256 claimed) {
+        bool harvested = PonsV2Raw.harvest(PonsV2Raw.feeHarvester(ponsMemeHook), curve);
+        IPonsV2FeeEscrow escrow = IPonsV2FeeEscrow(ponsFeeEscrow);
+        try escrow.balanceOf(address(this)) returns (uint256 credited) {
+            if (credited > 0) {
+                try escrow.claim() returns (uint256 amount) {
+                    claimed = amount;
+                } catch {}
+            }
+        } catch {}
+        emit FeesCollected(token, harvested, claimed);
     }
 
     /// @notice Preview how `amount` would be split under the active config.
@@ -130,8 +156,9 @@ contract FeeVault is ReentrancyGuard {
         creator = remainder - buyback - rewards;
     }
 
-    /// @notice Permissionless. Splits all pending ETH and pays the caller a small incentive.
+    /// @notice Permissionless. Pulls fees from Pons, splits all pending ETH and pays the caller a small incentive.
     function distribute() external nonReentrant {
+        collectFees();
         uint256 amount = pendingDistribution();
         if (amount == 0) revert NothingToDistribute();
 
