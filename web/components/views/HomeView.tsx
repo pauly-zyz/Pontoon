@@ -9,6 +9,7 @@ import { formatUsd, usdText, useEthUsd } from "@/lib/price";
 import type { TokenTab } from "@/lib/types";
 import { CountUp } from "../CountUp";
 import { FeeFlow } from "../FeeFlow";
+import { OfficialToken } from "../OfficialToken";
 import { Ticker } from "../Ticker";
 import { TokenCard } from "../TokenCard";
 import { TxFeed } from "../TxFeed";
@@ -108,7 +109,8 @@ function Hero() {
               <XIcon /> Follow on X
             </a>
           </div>
-          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted">
+          <OfficialToken className="mt-6 max-w-xl" />
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted">
             <li>✓ 24h timelock on fee changes</li>
             <li>✓ Verifiable burns to 0x…dEaD</li>
             <li>✓ Claims are never locked</li>

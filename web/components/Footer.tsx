@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SOCIAL } from "@/lib/config";
 import { Logo } from "./Header";
+import { OfficialToken } from "./OfficialToken";
 import { XIcon } from "./XIcon";
 
 const COLS = [
@@ -31,6 +32,7 @@ export function Footer() {
               <span className="font-semibold">{SOCIAL.x.handle}</span>
             </span>
           </a>
+          <OfficialToken className="mt-4 max-w-sm" />
         </div>
         {COLS.map((c) => (
           <div key={c.title}>
