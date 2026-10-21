@@ -32,12 +32,28 @@ contract MainnetSmoke is Script {
         return vm.envOr("SMOKE_TRADE_WEI", uint256(0.0003 ether));
     }
 
+    /// @dev Optional SMOKE_PK env (set by the caller from a key file, never on the command line).
+    function _pk() internal view returns (uint256) {
+        return vm.envOr("SMOKE_PK", uint256(0));
+    }
+
+    function _start() internal {
+        uint256 pk = _pk();
+        if (pk != 0) vm.startBroadcast(pk);
+        else vm.startBroadcast();
+    }
+
+    function _sender() internal view returns (address) {
+        uint256 pk = _pk();
+        return pk != 0 ? vm.addr(pk) : msg.sender;
+    }
+
     function run() external {
         require(address(PONS).code.length > 0, "Pons factory missing");
-        address me = msg.sender;
+        address me = _sender();
         uint256 fee = PONS.launchFee();
 
-        vm.startBroadcast();
+        _start();
         TokenRegistry registry = new TokenRegistry(me);
         PlatformTreasury treasury = new PlatformTreasury(me);
         BuybackExecutor executor = new BuybackExecutor(me, registry);
@@ -101,7 +117,7 @@ contract MainnetSmoke is Script {
         curve = IPonsV2Curve(info.curve);
         vault = FeeVault(payable(info.vault));
         rewards = HolderRewards(payable(info.holderRewards));
-        me = msg.sender;
+        me = _sender();
     }
 
     /// @notice Run > 3 s after `run`: buy, sell, stake, then (if Pons releases the fees) distribute,
@@ -115,7 +131,7 @@ contract MainnetSmoke is Script {
         } else {
             console2.log("Pons fees not harvestable yet (below the Pons minimum); skipping distribute + buyback");
         }
-        vm.startBroadcast();
+        _start();
         rewards.unstake(staked);
         vm.stopBroadcast();
     }
@@ -123,7 +139,7 @@ contract MainnetSmoke is Script {
     function _trade() internal {
         uint256 tradeBuy = _tradeBuy();
         uint256 before = IERC20(token).balanceOf(me);
-        vm.startBroadcast();
+        _start();
         curve.buy{value: tradeBuy}(tradeBuy, 1, me);
         vm.stopBroadcast();
         uint256 bought = IERC20(token).balanceOf(me) - before;
@@ -131,12 +147,12 @@ contract MainnetSmoke is Script {
 
         // Sell 95% back, stake half of what is left.
         uint256 toSell = bought * 95 / 100;
-        vm.startBroadcast();
+        _start();
         IERC20(token).approve(address(curve), toSell);
         curve.sell(toSell, 1, me);
         vm.stopBroadcast();
         staked = IERC20(token).balanceOf(me) / 2;
-        vm.startBroadcast();
+        _start();
         IERC20(token).approve(address(rewards), staked);
         rewards.stake(staked);
         vm.stopBroadcast();
@@ -151,7 +167,7 @@ contract MainnetSmoke is Script {
     }
 
     function _distributeAndBuyback() internal {
-        vm.startBroadcast();
+        _start();
         vault.distribute();
         vm.stopBroadcast();
         console2.log("distributed (wei)", vault.totalDistributed());
@@ -159,7 +175,7 @@ contract MainnetSmoke is Script {
         uint256 pending = executor.pendingETH(token);
         uint256 cap = executor.maxBuyback(token);
         uint256 amount = pending < cap ? pending : cap;
-        vm.startBroadcast();
+        _start();
         if (amount > 0) executor.buybackAndBurn(token, amount, 1);
         if (rewards.pendingReward(me) > 0) rewards.claim();
         if (vault.creatorOwed(me) > 0) vault.claimCreator();
