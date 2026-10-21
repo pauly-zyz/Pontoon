@@ -6,5 +6,6 @@
   "PontoonLauncher": "0x23b2f18e2C190dB01E4ae2C13157d8e82a1f548E",
   "TokenRegistry": "0x94B8b52D957f2Bb4006266AfcbECE22a04c64818",
   "chainId": 4663,
-  "startBlock": 94087197
+  "startBlock": 94087197,
+  "Owner": "0x9dE492BBB16ea6D382f60fC3b6E9403fFA249993"
 }
