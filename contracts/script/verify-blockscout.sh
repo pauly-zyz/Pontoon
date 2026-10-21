@@ -17,11 +17,21 @@ FEE_VAULT_IMPL=0x5F7e98365a3EB9bAe271f48C9b0499773575EBD7
 HOLDER_REWARDS_IMPL=0x951afCC9E236abC484ED2C9731145BB6eE27306F
 LAUNCHER=0x23b2f18e2C190dB01E4ae2C13157d8e82a1f548E
 
-verify() { # address contract [constructor args]
+FAILED=()
+verify() { # address contract [constructor args]; keeps going so one failure does not stop the rest
   local args=()
   [ -n "${3:-}" ] && args=(--constructor-args "$3")
-  forge verify-contract "$1" "$2" --chain-id 4663 --verifier blockscout --verifier-url "$VERIFIER_URL" \
-    --compiler-version "$COMPILER" --evm-version prague --num-of-optimizations 200 "${args[@]}" --watch
+  local out
+  if out=$(forge verify-contract "$1" "$2" --chain-id 4663 --verifier blockscout --verifier-url "$VERIFIER_URL" \
+    --compiler-version "$COMPILER" --evm-version prague --num-of-optimizations 200 "${args[@]}" --watch 2>&1); then
+    echo "OK   $2 $1"
+  elif grep -qi "already verified" <<<"$out"; then
+    echo "OK   $2 $1 (already verified)"
+  else
+    echo "FAIL $2 $1"
+    echo "$out" | tail -5
+    FAILED+=("$2")
+  fi
 }
 
 verify $REGISTRY src/TokenRegistry.sol:TokenRegistry "$(cast abi-encode 'c(address)' $OWNER)"
@@ -33,4 +43,8 @@ verify $HOLDER_REWARDS_IMPL src/HolderRewards.sol:HolderRewards
 verify $LAUNCHER src/PontoonLauncher.sol:PontoonLauncher \
   "$(cast abi-encode 'c(address,address,address,address,address,address,address,address)' \
     $OWNER $PONS $REGISTRY $FEE_VAULT_IMPL $HOLDER_REWARDS_IMPL $EXECUTOR $TREASURY $CTO)"
+if [ ${#FAILED[@]} -gt 0 ]; then
+  echo "Failed: ${FAILED[*]}"
+  exit 1
+fi
 echo "Done. Each token's FeeVault and HolderRewards are minimal-proxy clones of the two implementations above."

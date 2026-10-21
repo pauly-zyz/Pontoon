@@ -1,0 +1,23 @@
+# Verifies the official Pontoon contracts on Robinhood Chain Blockscout. Run it by hand from the
+# Actions tab ("Verify contracts" -> Run workflow). Needs no secrets: verification is public.
+name: Verify contracts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build
+      - run: ./script/verify-blockscout.sh
