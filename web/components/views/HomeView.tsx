@@ -91,7 +91,7 @@ function Hero() {
               href="/launch"
               className="rounded-xl bg-gradient-to-r from-teal-300 to-accent px-6 py-3 text-sm font-semibold text-accent-ink shadow-[0_10px_30px_-10px_rgb(45_212_191/0.8)] transition hover:brightness-110"
             >
-              {CONTRACTS_READY ? "Launch token →" : "Launch token — coming soon"}
+              {CONTRACTS_READY ? "Launch token →" : "Prepare your launch →"}
             </Link>
             <Link
               href="/docs"

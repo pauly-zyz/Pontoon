@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { parseEther, parseEventLogs, zeroAddress } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { PontoonLauncherAbi } from "@/lib/abis/PontoonLauncherAbi";
-import { contracts, CONTRACTS_READY, PARAMS, PRE_LAUNCH, QUOTE_PAIRS } from "@/lib/config";
+import { contracts, CONTRACTS_READY, PARAMS, PRE_LAUNCH, QUOTE_PAIRS, SOCIAL } from "@/lib/config";
 import { encodeMetadata, safeUrl } from "@/lib/format";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/launchDraft";
 import { useTx } from "@/lib/tx";
 import { FeePreview, FeeSliders, type FeeConfigState } from "../FeeSliders";
 import { TokenAvatar } from "../TokenAvatar";
@@ -25,25 +26,60 @@ function Step({ n }: { n: number }) {
 
 const QUOTE_ICON: Record<string, string> = { ETH: "◆", USDG: "$", NVDA: "▲", AAPL: "●", HOOD: "🪶" };
 
+const EMPTY_FORM = {
+  name: "",
+  symbol: "",
+  image: "",
+  description: "",
+  twitter: "",
+  telegram: "",
+  website: "",
+  initialBuy: "",
+};
+const DEFAULT_FEE: FeeConfigState = { buybackBps: PARAMS.defaultBuybackBps, rewardBps: PARAMS.defaultRewardBps };
+
+const savedTime = (ms: number) =>
+  new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 export function LaunchView() {
   const router = useRouter();
   const tx = useTx();
-  const [form, setForm] = useState({
-    name: "",
-    symbol: "",
-    image: "",
-    description: "",
-    twitter: "",
-    telegram: "",
-    website: "",
-    initialBuy: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [quoteKey, setQuoteKey] = useState("ETH");
   const [memestock, setMemestock] = useState(false);
-  const [fee, setFee] = useState<FeeConfigState>({
-    buybackBps: PARAMS.defaultBuybackBps,
-    rewardBps: PARAMS.defaultRewardBps,
+  const [fee, setFee] = useState<FeeConfigState>(DEFAULT_FEE);
+  // Saved draft: restored after mount (the server never sees localStorage).
+  const [draft, setDraft] = useState<{ status: "none" | "restored" | "saved" | "unsaved"; savedAt?: number }>({
+    status: "none",
   });
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const d = loadDraft();
+      if (!d) return;
+      setForm({ ...EMPTY_FORM, ...d.form });
+      setQuoteKey(d.quoteKey);
+      setMemestock(d.memestock);
+      setFee(d.fee);
+      setDraft({ status: "restored", savedAt: d.savedAt });
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  function saveLaunch() {
+    const savedAt = Date.now();
+    const ok = saveDraft({ form, quoteKey, memestock, fee, savedAt });
+    setDraft(ok ? { status: "saved", savedAt } : { status: "unsaved" });
+  }
+
+  function startOver() {
+    clearDraft();
+    setForm(EMPTY_FORM);
+    setQuoteKey("ETH");
+    setMemestock(false);
+    setFee(DEFAULT_FEE);
+    setDraft({ status: "none" });
+  }
 
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: k === "symbol" ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") : e.target.value }));
@@ -105,7 +141,11 @@ export function LaunchView() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (errors.length || !contracts.launcher) return;
+    if (errors.length) return;
+    if (!CONTRACTS_READY || !contracts.launcher) {
+      saveLaunch();
+      return;
+    }
     const launcher = contracts.launcher;
     const receipt = await tx.send((write) =>
       write({
@@ -122,6 +162,7 @@ export function LaunchView() {
       }),
     );
     if (!receipt) return;
+    clearDraft();
     const [launched] = parseEventLogs({ abi: PontoonLauncherAbi, eventName: "TokenLaunched", logs: receipt.logs });
     if (launched) router.push(`/token/${launched.args.token}`);
   }
@@ -130,8 +171,22 @@ export function LaunchView() {
     <div>
       <PageTitle
         title="Launch token"
-        subtitle="Your token is created on Pons V2 with a Pontoon FeeVault as the creator-fee recipient. You can change the fee split later, behind a 24h timelock."
+        subtitle={
+          CONTRACTS_READY
+            ? "Your token is created on Pons V2 with a Pontoon FeeVault as the creator-fee recipient. You can change the fee split later, behind a 24h timelock."
+            : "Prepare your token now. Launches open soon: save your launch and it will be ready to deploy on launch day."
+        }
       />
+      {draft.status === "restored" && (
+        <div className="animate-fade-up mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm">
+          <span>
+            Welcome back. We restored the launch you saved{draft.savedAt ? ` on ${savedTime(draft.savedAt)}` : ""}.
+          </span>
+          <button type="button" onClick={startOver} className="text-xs font-medium text-muted underline underline-offset-2 hover:text-ink">
+            Start over
+          </button>
+        </div>
+      )}
       <form onSubmit={submit} className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <Card>
@@ -251,10 +306,39 @@ export function LaunchView() {
                 ))}
               </ul>
             )}
-            <Button type="submit" className="mt-5 w-full py-3" disabled={!CONTRACTS_READY || !tx.ready || errors.length > 0 || tx.busy}>
-              {!CONTRACTS_READY ? (PRE_LAUNCH ? "Launching soon" : "Contracts not configured") : !tx.ready ? "Connect your wallet first" : tx.busy ? "Processing…" : "Deploy token"}
-            </Button>
-            <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
+            {CONTRACTS_READY ? (
+              <>
+                <Button type="submit" className="mt-5 w-full py-3" disabled={!tx.ready || errors.length > 0 || tx.busy}>
+                  {!tx.ready ? "Connect your wallet first" : tx.busy ? "Processing…" : "Deploy token"}
+                </Button>
+                <TxNotice status={tx.status} hash={tx.hash} error={tx.error} />
+              </>
+            ) : (
+              <>
+                <Button type="submit" className="mt-5 w-full py-3" disabled={errors.length > 0}>
+                  💾 {draft.status === "saved" || draft.status === "restored" ? "Update my launch" : "Save my launch"}
+                </Button>
+                {draft.status === "saved" && (
+                  <p className="animate-fade-up mt-3 text-xs text-accent" role="status">
+                    ✓ Saved in this browser{draft.savedAt ? ` on ${savedTime(draft.savedAt)}` : ""}. It will be ready to deploy on
+                    launch day.
+                  </p>
+                )}
+                {draft.status === "unsaved" && (
+                  <p className="mt-3 text-xs text-danger" role="status">
+                    Could not save here (private browsing or storage is blocked).
+                  </p>
+                )}
+                <p className="mt-3 text-xs leading-relaxed text-muted">
+                  {PRE_LAUNCH ? "Launches open soon." : "Launches are not open yet."} Your draft stays in this browser only and
+                  nothing is sent on-chain.{" "}
+                  <a href={SOCIAL.x.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    Follow {SOCIAL.x.handle}
+                  </a>{" "}
+                  for the launch date.
+                </p>
+              </>
+            )}
           </Card>
         </div>
       </form>
