@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseEther, parseEventLogs, zeroAddress } from "viem";
-import { useReadContract, useReadContracts } from "wagmi";
+import { useReadContract } from "wagmi";
 import { PontoonLauncherAbi } from "@/lib/abis/PontoonLauncherAbi";
-import { contracts, CONTRACTS_READY, PARAMS, PRE_LAUNCH, QUOTE_PAIRS, SOCIAL } from "@/lib/config";
-import { encodeMetadata, safeUrl } from "@/lib/format";
+import { contracts, CONTRACTS_READY, LIVE_QUOTE_KEYS, PARAMS, PRE_LAUNCH, QUOTE_PAIRS, SOCIAL } from "@/lib/config";
+import { formatEth, safeUrl } from "@/lib/format";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/launchDraft";
 import { useTx } from "@/lib/tx";
 import { FeePreview, FeeSliders, type FeeConfigState } from "../FeeSliders";
@@ -15,6 +15,8 @@ import { TxNotice } from "../TxNotice";
 import { Badge, Button, Card, CardTitle, cn, Field, inputClass, PageTitle } from "../ui";
 
 const MAX_META_BYTES = 2_000;
+/** Pons V2 launch fee, used for the preview until the launcher is deployed. */
+const DEFAULT_LAUNCH_FEE = 500_000_000_000_000n; // 0.0005 ETH
 
 function Step({ n }: { n: number }) {
   return (
@@ -58,7 +60,7 @@ export function LaunchView() {
       const d = loadDraft();
       if (!d) return;
       setForm({ ...EMPTY_FORM, ...d.form });
-      setQuoteKey(d.quoteKey);
+      setQuoteKey(LIVE_QUOTE_KEYS.has(d.quoteKey) ? d.quoteKey : "ETH");
       setMemestock(d.memestock);
       setFee(d.fee);
       setDraft({ status: "restored", savedAt: d.savedAt });
@@ -92,33 +94,29 @@ export function LaunchView() {
   });
   const platformBps = platformFee.data ?? PARAMS.defaultPlatformFeeBps;
 
-  const configured = QUOTE_PAIRS.filter((q) => q.address);
-  const allowed = useReadContracts({
-    contracts: configured.map((q) => ({
-      address: contracts.launcher,
-      abi: PontoonLauncherAbi,
-      functionName: "quotePairAllowed" as const,
-      args: [q.address!] as const,
-    })),
+  const launchFeeRead = useReadContract({
+    address: contracts.launcher,
+    abi: PontoonLauncherAbi,
+    functionName: "launchFee",
     query: { enabled: CONTRACTS_READY },
   });
-  const isAllowed = (key: string) => {
-    if (!CONTRACTS_READY) return true; // preview mode
-    const i = configured.findIndex((q) => q.key === key);
-    return i >= 0 && allowed.data?.[i]?.result === true;
-  };
+  const launchFee = launchFeeRead.data ?? DEFAULT_LAUNCH_FEE;
+  const isAllowed = (key: string) => LIVE_QUOTE_KEYS.has(key);
 
-  const metadataURI = useMemo(
-    () =>
-      encodeMetadata({
-        description: form.description.trim() || undefined,
-        image: safeUrl(form.image.trim()) ?? undefined,
-        twitter: safeUrl(form.twitter.trim()) ?? undefined,
-        telegram: safeUrl(form.telegram.trim()) ?? undefined,
-        website: safeUrl(form.website.trim()) ?? undefined,
-      }),
+  // Stored on-chain by Pons V2 and in the Pontoon TokenMetadata event.
+  const meta = useMemo(
+    () => ({
+      name: form.name.trim(),
+      symbol: form.symbol,
+      logo: safeUrl(form.image.trim()) ?? "",
+      description: form.description.trim(),
+      twitter: safeUrl(form.twitter.trim()) ?? "",
+      telegram: safeUrl(form.telegram.trim()) ?? "",
+      website: safeUrl(form.website.trim()) ?? "",
+    }),
     [form],
   );
+  const metaBytes = new TextEncoder().encode(Object.values(meta).join("")).length;
 
   const errors: string[] = [];
   if (!form.name.trim()) errors.push("Name is required.");
@@ -128,14 +126,15 @@ export function LaunchView() {
   if (form.description.length > 280) errors.push("Description can be at most 280 characters.");
   for (const k of ["image", "twitter", "telegram", "website"] as const)
     if (form[k].trim() && !safeUrl(form[k].trim())) errors.push(`Invalid ${k} URL.`);
-  if (metadataURI.length > MAX_META_BYTES) errors.push("Metadata is too long.");
-  let value = 0n;
+  if (metaBytes > MAX_META_BYTES) errors.push("Metadata is too long.");
+  let initialBuy = 0n;
   try {
-    value = form.initialBuy.trim() ? parseEther(form.initialBuy.trim()) : 0n;
+    initialBuy = form.initialBuy.trim() ? parseEther(form.initialBuy.trim()) : 0n;
   } catch {
     errors.push("Invalid initial buy amount.");
   }
   if (!isAllowed(quoteKey)) errors.push(`Quote pair ${quoteKey} is not open yet.`);
+  const value = launchFee + initialBuy;
 
   const quote = QUOTE_PAIRS.find((q) => q.key === quoteKey)!;
 
@@ -152,12 +151,7 @@ export function LaunchView() {
       address: launcher,
       abi: PontoonLauncherAbi,
       functionName: "launch",
-      args: [
-        { name: form.name.trim(), symbol: form.symbol, metadataURI },
-        quote.address ?? zeroAddress,
-        memestock,
-        fee,
-      ],
+      args: [meta, quote.address ?? zeroAddress, memestock, fee],
       value,
       }),
     );
@@ -226,7 +220,7 @@ export function LaunchView() {
             </CardTitle>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {QUOTE_PAIRS.map((q) => {
-                const enabled = isAllowed(q.key) && (q.key === "ETH" || Boolean(q.address) || !CONTRACTS_READY);
+                const enabled = isAllowed(q.key);
                 return (
                   <button
                     key={q.key}
@@ -248,14 +242,14 @@ export function LaunchView() {
                       {q.label}
                     </div>
                     <div className="text-[11px] text-muted">
-                      {q.kind === "native" ? "Native" : q.kind === "stable" ? "Stablecoin" : "Tokenized stock"}
+                      {!enabled ? "Coming soon" : q.kind === "native" ? "Native" : q.kind === "stable" ? "Stablecoin" : "Tokenized stock"}
                     </div>
                   </button>
                 );
               })}
             </div>
             <p className="mt-3 text-xs text-muted">
-              For pairs other than ETH, buybacks swap ETH into the quote asset first, then into the token.
+              Launches are paired with ETH for now. USDG and tokenized-stock pairs are coming soon.
             </p>
             <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-line bg-bg/40 px-4 py-3">
               <span>
@@ -293,12 +287,29 @@ export function LaunchView() {
           </Card>
 
           <Card>
-            <Field label="Initial buy (optional)" hint="ETH spent on your token for you at launch.">
+            <Field
+              label="Initial buy (optional)"
+              hint="Bought for you in the launch transaction, before anyone else can buy, with no snipe tax."
+            >
               <div className="relative">
                 <input className={cn(inputClass, "pr-14")} inputMode="decimal" value={form.initialBuy} onChange={set("initialBuy")} placeholder="0.0" />
                 <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">ETH</span>
               </div>
             </Field>
+            <dl className="tabular mt-4 space-y-1 text-xs">
+              <div className="flex justify-between">
+                <dt className="text-muted">Pons V2 launch fee</dt>
+                <dd>{formatEth(launchFee, 4)} ETH</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Initial buy</dt>
+                <dd>{formatEth(initialBuy, 4)} ETH</dd>
+              </div>
+              <div className="flex justify-between border-t border-line pt-1 text-sm font-semibold">
+                <dt>Total</dt>
+                <dd>{formatEth(value, 4)} ETH</dd>
+              </div>
+            </dl>
             {errors.length > 0 && (form.name || form.symbol) && (
               <ul className="mt-4 space-y-1 text-xs text-danger">
                 {errors.map((e) => (

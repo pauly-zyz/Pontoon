@@ -16,8 +16,9 @@ const targets = [
   ["HolderRewards.sol", "HolderRewards", "HolderRewardsAbi"],
   ["PlatformTreasury.sol", "PlatformTreasury", "PlatformTreasuryAbi"],
   ["CTOManager.sol", "CTOManager", "CTOManagerAbi"],
-  // PLACEHOLDER until the real Pons V2 ABI is available.
-  ["IPonsV2.sol", "IPonsV2Factory", "PonsV2FactoryAbi"],
+  // Live Pons V2 (Robinhood Chain): launch factory + per-token bonding curve.
+  ["IPonsV2Live.sol", "IPonsV2LaunchFactory", "PonsV2FactoryAbi"],
+  ["IPonsV2Live.sol", "IPonsV2Curve", "PonsV2CurveAbi"],
 ];
 
 for (const [file, name, exportName] of targets) {

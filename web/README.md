@@ -47,8 +47,9 @@ Shared components from the spec: `TokenCard`, `CurveProgress`, `FeeSplitBar`, `T
 - Social links (X @PontoonFamily) live in `SOCIAL` in `lib/config.ts`.
 - Token metadata (image URL, description, socials) is stored as a `data:` JSON URI in `metadataURI`,
   so launching needs no upload service. Image upload (IPFS or similar) is a follow-up.
-- Selling, the trade quote and curve progress use placeholder Pons V2 functions; selling stays disabled
-  until the real router ABI is known.
+- Buy and sell go straight to the token's Pons V2 bonding curve; quotes come from the curve reserves.
+  Graduated tokens trade on Uniswap V4, which the app does not route yet.
+- Only ETH-paired launches are open; other pairs show "Coming soon".
 - `lib/base-account-stub.js` replaces the Base Account SDK that RainbowKit references; its Coinbase
   CDP dependency breaks the Turbopack build and Pontoon does not offer that wallet.
 - Wallet-dependent UI uses `useWallet()` (`lib/wallet.ts`), which reports no wallet until hydration

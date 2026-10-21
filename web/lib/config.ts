@@ -35,21 +35,24 @@ function addr(value: string | undefined): Address | undefined {
   return value && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Address) : undefined;
 }
 
+export const PONS_FACTORY_MAINNET: Address = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
+
 export const contracts = {
   launcher: addr(process.env.NEXT_PUBLIC_LAUNCHER_ADDRESS),
   registry: addr(process.env.NEXT_PUBLIC_REGISTRY_ADDRESS),
   buybackExecutor: addr(process.env.NEXT_PUBLIC_BUYBACK_EXECUTOR_ADDRESS),
   treasury: addr(process.env.NEXT_PUBLIC_TREASURY_ADDRESS),
   ctoManager: addr(process.env.NEXT_PUBLIC_CTO_MANAGER_ADDRESS),
-  // PLACEHOLDER Pons V2 contracts
-  ponsFactory: addr(process.env.NEXT_PUBLIC_PONS_FACTORY_ADDRESS),
-  ponsRouter: addr(process.env.NEXT_PUBLIC_PONS_ROUTER_ADDRESS),
-  v4Adapter: addr(process.env.NEXT_PUBLIC_V4_ADAPTER_ADDRESS),
+  // Live Pons V2 launch factory on Robinhood Chain mainnet (override only for another network).
+  ponsFactory: addr(process.env.NEXT_PUBLIC_PONS_FACTORY_ADDRESS) ?? PONS_FACTORY_MAINNET,
 };
 
 export const CONTRACTS_READY = !USE_MOCK && Boolean(contracts.launcher && contracts.registry);
 
 export type QuotePair = { key: string; label: string; address?: Address; kind: "native" | "stable" | "stock" };
+
+/** Only ETH-paired launches are live; stablecoin and tokenized-stock pairs come later. */
+export const LIVE_QUOTE_KEYS = new Set(["ETH"]);
 
 export const QUOTE_PAIRS: QuotePair[] = [
   { key: "ETH", label: "ETH", address: zeroAddress, kind: "native" },
@@ -88,6 +91,9 @@ export const PARAMS = {
   configTimelockHours: 24,
   ctoTimelockDays: 3,
   maxBuybackEth: 0.5,
+  // Pons V2 bonding curve
+  curveFeeBps: 100,
+  creatorTaxBps: 300,
 };
 
 /** Address used to filter by quote pair: env address in live mode, dummy address in mock mode. */

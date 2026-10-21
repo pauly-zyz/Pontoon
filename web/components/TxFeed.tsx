@@ -10,7 +10,9 @@ import { Empty, Skeleton, TxLink } from "./ui";
 const KIND: Record<string, { label: string; color: string }> = {
   launch: { label: "Launch", color: "bg-accent" },
   distribute: { label: "Distribution", color: "bg-sky-400" },
+  initial_buy: { label: "Creator buy", color: "bg-accent" },
   buyback_burn: { label: "Buyback-burn", color: "bg-amber-400" },
+  buyback_to_stakers: { label: "Buyback to stakers", color: "bg-teal-400" },
   stake: { label: "Stake", color: "bg-teal-400" },
   unstake: { label: "Unstake", color: "bg-slate-400" },
   reward_claim: { label: "Reward claim", color: "bg-teal-300" },
@@ -38,6 +40,10 @@ function describe(a: Activity): string {
       return `${eth(a.amount)} split · buyback ${eth(d.buyback)} · rewards ${eth(d.rewards)}`;
     case "buyback_burn":
       return `${eth(a.amount)} → ${formatTokens(String(d.tokensBurned ?? 0))} tokens burned`;
+    case "initial_buy":
+      return `${eth(a.amount)} → ${formatTokens(String(d.tokensOut ?? 0))} tokens`;
+    case "buyback_to_stakers":
+      return `${eth(a.amount)} sent to stakers (token graduated)`;
     case "stake":
     case "unstake":
       return `${formatTokens(a.amount)} tokens · ${shortAddr(a.actor)}`;

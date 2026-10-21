@@ -4,25 +4,38 @@ pragma solidity ^0.8.28;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {FeeConfig, IFeeVault, IHolderRewards, IPlatformConfig, ITokenRegistry} from "./interfaces/IPontoon.sol";
-import {IPonsV2Factory} from "./interfaces/IPonsV2.sol";
+import {
+    FeeConfig,
+    IFeeVault,
+    IHolderRewards,
+    IPlatformConfig,
+    ITokenRegistry,
+    VaultWiring
+} from "./interfaces/IPontoon.sol";
+import {IPonsV2Curve, IPonsV2LaunchFactory} from "./interfaces/IPonsV2Live.sol";
 
 /// @title PontoonLauncher
-/// @notice Entry point for launches. Clones a FeeVault + HolderRewards per token, creates the token
-///         on Pons V2 with the FeeVault as creator-fee recipient, and registers it.
+/// @notice Entry point for launches. Clones a FeeVault + HolderRewards per token, launches the token on the
+///         live Pons V2 factory with the FeeVault as creator-fee recipient, registers it, and (optionally)
+///         buys for the creator in the same transaction, exempt from the launch snipe tax.
 ///         Also holds the global platform fee that every FeeVault reads.
 contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     uint16 public constant MAX_PLATFORM_FEE_BPS = 3_000;
     uint16 public constant DEFAULT_BUYBACK_BPS = 4_000;
     uint16 public constant DEFAULT_REWARD_BPS = 2_000;
+    address public constant ETH = address(0);
 
     struct TokenMeta {
         string name;
         string symbol;
-        string metadataURI; // image, description, socials (off-chain JSON)
+        string logo; // image URL
+        string description;
+        string twitter;
+        string telegram;
+        string website;
     }
 
-    IPonsV2Factory public immutable ponsFactory;
+    IPonsV2LaunchFactory public immutable ponsFactory;
     ITokenRegistry public immutable registry;
     address public immutable feeVaultImpl;
     address public immutable holderRewardsImpl;
@@ -31,26 +44,34 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
     address public immutable ctoManager;
 
     uint16 public platformFeeBps = 2_000;
+    /// @notice Pons creator tax every Pontoon token is launched with (paid on curve trades into the FeeVault).
+    uint16 public creatorTaxBps = 300;
+    uint256 public launchConfigId; // Pons launch config (0 = standard 1B supply, 4.2 ETH graduation)
     bool public paused;
-    /// @notice Allowed quote pairs. address(0) = ETH.
+    /// @notice Allowed quote pairs. Only ETH (address(0)) is supported for now.
     mapping(address => bool) public quotePairAllowed;
+    uint256 public launchCount;
 
     event TokenLaunched(
         address indexed token, address indexed creator, address quotePair, bool isMemestock, address vault
     );
-    /// @notice Name, ticker and off-chain metadata (image, description, socials) for the indexer.
-    event TokenMetadata(address indexed token, string name, string symbol, string metadataURI);
+    event TokenMetadata(address indexed token, TokenMeta meta);
+    event InitialBuy(address indexed token, address indexed creator, uint256 ethIn, uint256 tokensOut);
     event PlatformFeeSet(uint16 bps);
+    event CreatorTaxSet(uint16 bps);
+    event LaunchConfigIdSet(uint256 id);
     event QuotePairSet(address indexed quoteAsset, bool allowed);
     event Paused(bool paused);
 
     error IsPaused();
     error QuotePairNotAllowed();
     error FeeTooHigh();
+    error InsufficientLaunchFee(uint256 required);
+    error PonsLaunchDisabled();
 
     constructor(
         address owner_,
-        IPonsV2Factory ponsFactory_,
+        IPonsV2LaunchFactory ponsFactory_,
         ITokenRegistry registry_,
         address feeVaultImpl_,
         address holderRewardsImpl_,
@@ -65,8 +86,8 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         buybackExecutor = buybackExecutor_;
         treasury = treasury_;
         ctoManager = ctoManager_;
-        quotePairAllowed[address(0)] = true;
-        emit QuotePairSet(address(0), true);
+        quotePairAllowed[ETH] = true;
+        emit QuotePairSet(ETH, true);
     }
 
     // ---- Admin (multisig) ----
@@ -77,7 +98,22 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         emit PlatformFeeSet(bps);
     }
 
+    /// @notice Creator tax for future launches, capped by the Pons factory's maximum.
+    function setCreatorTaxBps(uint16 bps) external onlyOwner {
+        if (bps > ponsFactory.maxCreatorTaxBps()) revert FeeTooHigh();
+        creatorTaxBps = bps;
+        emit CreatorTaxSet(bps);
+    }
+
+    function setLaunchConfigId(uint256 id) external onlyOwner {
+        launchConfigId = id;
+        emit LaunchConfigIdSet(id);
+    }
+
+    /// @notice Non-ETH pairs (USDG, tokenized stocks) need ERC-20 quote handling that is not wired yet,
+    ///         so only ETH can be enabled for now.
     function setQuotePair(address quoteAsset, bool allowed) external onlyOwner {
+        if (allowed && quoteAsset != ETH) revert QuotePairNotAllowed();
         quotePairAllowed[quoteAsset] = allowed;
         emit QuotePairSet(quoteAsset, allowed);
     }
@@ -93,7 +129,12 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         return FeeConfig({buybackBps: DEFAULT_BUYBACK_BPS, rewardBps: DEFAULT_REWARD_BPS});
     }
 
-    /// @notice Launch with a custom fee split. `msg.value` is forwarded as the creator's initial buy.
+    /// @notice ETH required on top of any initial buy.
+    function launchFee() public view returns (uint256) {
+        return ponsFactory.launchFee();
+    }
+
+    /// @notice Launch with a custom fee split. `msg.value` = Pons launch fee + optional initial buy for the creator.
     function launch(TokenMeta calldata meta, address quotePair, bool isMemestock, FeeConfig calldata feeConfig)
         external
         payable
@@ -118,28 +159,65 @@ contract PontoonLauncher is IPlatformConfig, Ownable, ReentrancyGuard {
         returns (address token, address vault)
     {
         if (paused) revert IsPaused();
-        if (!quotePairAllowed[quotePair]) revert QuotePairNotAllowed();
+        if (!quotePairAllowed[quotePair] || quotePair != ETH) revert QuotePairNotAllowed();
+        if (!ponsFactory.launchEnabled()) revert PonsLaunchDisabled();
+        uint256 fee = ponsFactory.launchFee();
+        if (msg.value < fee) revert InsufficientLaunchFee(fee);
 
         vault = Clones.clone(feeVaultImpl);
         address rewards = Clones.clone(holderRewardsImpl);
 
-        token = ponsFactory.createToken{value: msg.value}(
-            IPonsV2Factory.CreateParams({
-                name: meta.name,
-                symbol: meta.symbol,
-                metadataURI: meta.metadataURI,
-                quoteAsset: quotePair,
-                feeRecipient: vault,
-                initialBuyRecipient: msg.sender
-            })
-        );
+        address curve;
+        (token, curve) = _ponsLaunch(meta, vault);
 
         IHolderRewards(rewards).initialize(token);
         // Reverts on an out-of-bounds feeConfig.
-        IFeeVault(vault).initialize(token, msg.sender, rewards, buybackExecutor, treasury, ctoManager, feeConfig);
-        registry.register(token, msg.sender, quotePair, isMemestock, vault, rewards);
+        IFeeVault(vault)
+            .initialize(
+                VaultWiring({
+                    token: token,
+                    curve: curve,
+                    admin: msg.sender,
+                    holderRewards: rewards,
+                    buybackExecutor: buybackExecutor,
+                    treasury: treasury,
+                    ctoManager: ctoManager,
+                    ponsFeeEscrow: ponsFactory.feeEscrow(),
+                    ponsMemeHook: ponsFactory.memeHook()
+                }),
+                feeConfig
+            );
+        registry.register(token, curve, msg.sender, quotePair, isMemestock, vault, rewards);
 
-        emit TokenMetadata(token, meta.name, meta.symbol, meta.metadataURI);
+        emit TokenMetadata(token, meta);
         emit TokenLaunched(token, msg.sender, quotePair, isMemestock, vault);
+
+        uint256 buyAmount = msg.value - fee;
+        if (buyAmount > 0) {
+            // Same transaction as the launch, so the price cannot move in between.
+            uint256 out = IPonsV2Curve(curve).buy{value: buyAmount}(buyAmount, 1, msg.sender);
+            emit InitialBuy(token, msg.sender, buyAmount, out);
+        }
+    }
+
+    function _ponsLaunch(TokenMeta calldata meta, address vault) private returns (address token, address curve) {
+        IPonsV2LaunchFactory.TokenParams memory p;
+        p.name = meta.name;
+        p.symbol = meta.symbol;
+        p.logo = meta.logo;
+        p.description = meta.description;
+        p.socials.twitter = meta.twitter;
+        p.socials.telegram = meta.telegram;
+        p.socials.website = meta.website;
+        p.creatorFeeRecipient = vault;
+        p.creatorTaxBps = creatorTaxBps;
+        p.buybackEnabled = false; // Pontoon runs its own buyback-and-burn
+        p.expectedEconomics = ponsFactory.previewLaunchEconomics(launchConfigId, ETH);
+        p.salt = keccak256(abi.encode(address(this), msg.sender, ++launchCount));
+
+        // The creator's initial buy (recipient = creator) is exempt from the launch snipe tax.
+        address[] memory exempt = new address[](1);
+        exempt[0] = msg.sender;
+        (token, curve) = ponsFactory.launchToken{value: ponsFactory.launchFee()}(p, launchConfigId, ETH, exempt);
     }
 }

@@ -10,12 +10,41 @@ contract DistributeTest is BaseTest {
         address indexed token, uint256 platform, uint256 creator, uint256 buyback, uint256 rewards, address caller
     );
 
-    function test_feeFromPonsLandsInVault() public {
-        assertEq(pons.feeRecipientOf(address(token)), address(vault));
+    function test_vaultIsPonsCreatorFeeRecipient() public view {
+        assertEq(pons.getLaunchedToken(address(token)).creatorFeeRecipient, address(vault));
+        assertEq(pons.getLaunchedToken(address(token)).deployer, address(launcher));
+        assertEq(vault.curve(), address(curve));
+    }
+
+    function test_feesWaitInPonsEscrowUntilDistribute() public {
         _payFee(1 ether);
-        assertEq(address(vault).balance, 1 ether);
+        assertEq(vault.claimableFromPons(), 1 ether);
+        assertEq(address(vault).balance, 0);
+        vault.distribute();
         assertEq(vault.totalReceived(), 1 ether);
-        assertEq(vault.pendingDistribution(), 1 ether);
+        assertEq(vault.claimableFromPons(), 0);
+    }
+
+    function test_distribute_harvestsCurveTradingFees() public {
+        // 1 ETH buy: creator tax 3% (0.03) + 70% of the 1% curve fee (0.007) accrue in the curve.
+        _buy(bob, 1 ether);
+        assertEq(curve.pendingCreatorFees(), 0.037 ether);
+        assertEq(vault.claimableFromPons(), 0, "not swept yet");
+        vm.prank(keeper);
+        vault.distribute();
+        assertEq(curve.pendingCreatorFees(), 0, "swept by the Pons harvester");
+        assertEq(vault.totalReceived(), 0.037 ether);
+        assertEq(vault.totalDistributed(), 0.037 ether);
+    }
+
+    function test_collectFees_isPermissionlessAndNeverReverts() public {
+        vm.prank(alice);
+        assertEq(vault.collectFees(), 0); // nothing anywhere: no revert
+        _buy(bob, 0.5 ether);
+        vm.prank(alice);
+        uint256 claimed = vault.collectFees();
+        assertEq(claimed, 0.0185 ether);
+        assertEq(vault.pendingDistribution(), 0.0185 ether);
     }
 
     function test_distribute_defaultSplit_incentiveCapped() public {
@@ -128,7 +157,7 @@ contract DistributeTest is BaseTest {
     function test_distribute_zeroBuybackZeroReward() public {
         (address t, address v) = _launch(alice, FeeConfig({buybackBps: 0, rewardBps: 0}));
         vm.deal(address(this), 1 ether);
-        pons.payCreatorFee{value: 1 ether}(t);
+        pons.creditCreatorFee{value: 1 ether}(t);
         FeeVault(payable(v)).distribute();
         assertEq(executor.pendingETH(t), 0);
         // 1 - 0.005 incentive = 0.995; 80% to creator
@@ -150,7 +179,7 @@ contract DistributeTest is BaseTest {
         FeeVault fv = FeeVault(payable(v));
 
         vm.deal(address(this), amount);
-        pons.payCreatorFee{value: amount}(t);
+        pons.creditCreatorFee{value: amount}(t);
 
         uint256 treasuryBefore = address(treasury).balance;
         address rw = registry.getToken(t).holderRewards;

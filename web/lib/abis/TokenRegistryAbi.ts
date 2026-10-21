@@ -7,11 +7,6 @@ export const TokenRegistryAbi = [
         "name": "owner_",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "ponsFactory_",
-        "type": "address",
-        "internalType": "contract IPonsV2Factory"
       }
     ],
     "stateMutability": "nonpayable"
@@ -57,6 +52,11 @@ export const TokenRegistryAbi = [
             "internalType": "address"
           },
           {
+            "name": "curve",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "quoteAsset",
             "type": "address",
             "internalType": "address"
@@ -87,6 +87,25 @@ export const TokenRegistryAbi = [
             "internalType": "uint64"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isGraduated",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -151,23 +170,15 @@ export const TokenRegistryAbi = [
   },
   {
     "type": "function",
-    "name": "ponsFactory",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IPonsV2Factory"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "register",
     "inputs": [
       {
         "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "curve",
         "type": "address",
         "internalType": "address"
       },
@@ -342,6 +353,12 @@ export const TokenRegistryAbi = [
         "name": "creator",
         "type": "address",
         "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "curve",
+        "type": "address",
+        "indexed": false,
         "internalType": "address"
       },
       {

@@ -67,6 +67,7 @@ function makeToken(s: Seed, i: number, now: number): TokenListItem {
     isMemestock: s.memestock,
     vault: hex(0xb000 + i),
     holderRewards: hex(0xd000 + i),
+    curve: hex(0xe000 + i),
     launchedAt: now - s.ageH * H,
     launchTx: txh(1000 + i),
     graduated: Boolean(s.graduated),

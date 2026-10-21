@@ -12,17 +12,21 @@ interface IPlatformConfig {
     function platformFeeBps() external view returns (uint16);
 }
 
-interface IFeeVault {
-    function initialize(
-        address token,
-        address admin,
-        address holderRewards,
-        address buybackExecutor,
-        address treasury,
-        address ctoManager,
-        FeeConfig calldata config
-    ) external;
+/// @notice Addresses a FeeVault needs, set once at initialize.
+struct VaultWiring {
+    address token;
+    address curve; // Pons V2 bonding curve of the token
+    address admin; // creator, until a CTO
+    address holderRewards;
+    address buybackExecutor;
+    address treasury;
+    address ctoManager;
+    address ponsFeeEscrow;
+    address ponsMemeHook;
+}
 
+interface IFeeVault {
+    function initialize(VaultWiring calldata wiring, FeeConfig calldata config) external;
     function admin() external view returns (address);
     function token() external view returns (address);
     function setAdmin(address newAdmin) external;
@@ -40,6 +44,7 @@ interface IBuybackExecutor {
 interface ITokenRegistry {
     struct TokenInfo {
         address creator;
+        address curve;
         address quoteAsset;
         address vault;
         address holderRewards;
@@ -50,6 +55,7 @@ interface ITokenRegistry {
 
     function register(
         address token,
+        address curve,
         address creator,
         address quoteAsset,
         bool isMemestock,

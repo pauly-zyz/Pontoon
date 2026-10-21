@@ -142,6 +142,32 @@ export const FeeVaultAbi = [
   },
   {
     "type": "function",
+    "name": "claimableFromPons",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "collectFees",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "claimed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "config",
     "inputs": [],
     "outputs": [
@@ -192,6 +218,19 @@ export const FeeVaultAbi = [
   },
   {
     "type": "function",
+    "name": "curve",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "distribute",
     "inputs": [],
     "outputs": [],
@@ -215,34 +254,56 @@ export const FeeVaultAbi = [
     "name": "initialize",
     "inputs": [
       {
-        "name": "token_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "admin_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "holderRewards_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "buybackExecutor_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "treasury_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "ctoManager_",
-        "type": "address",
-        "internalType": "address"
+        "name": "w",
+        "type": "tuple",
+        "internalType": "struct VaultWiring",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "curve",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "holderRewards",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "buybackExecutor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "treasury",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "ctoManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "ponsFeeEscrow",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "ponsMemeHook",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
       },
       {
         "name": "config_",
@@ -312,6 +373,32 @@ export const FeeVaultAbi = [
   {
     "type": "function",
     "name": "platformConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ponsFeeEscrow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ponsMemeHook",
     "inputs": [],
     "outputs": [
       {
@@ -700,6 +787,31 @@ export const FeeVaultAbi = [
       },
       {
         "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeesCollected",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "harvested",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "claimed",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"

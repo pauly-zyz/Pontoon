@@ -1,7 +1,7 @@
 # Pontoon indexer
 
 [Ponder](https://ponder.sh) 0.18 indexer for every event in the spec section "Event untuk indexer",
-plus `Graduated` (and a placeholder `Trade`) from Pons V2. Serves a REST API for the home page,
+plus Pons V2 `PoolGraduated` and the `CurveBuy` / `CurveSell` trades of each Pontoon token's bonding curve. Serves a REST API for the home page,
 treasury dashboard and token detail page, plus GraphQL and SQL-over-HTTP.
 
 ## Run locally (anvil + mock Pons V2)
@@ -29,14 +29,15 @@ ABIs in `abis/` are generated from the Foundry build: `npm run abis` after `forg
 
 | Source | Events |
 | --- | --- |
-| PontoonLauncher | `TokenLaunched`, `TokenMetadata` |
+| PontoonLauncher | `TokenLaunched`, `TokenMetadata`, `InitialBuy` |
 | TokenRegistry | `TokenRegistered`, `Graduated`, `MemestockTagSet` |
 | FeeVault (per token, via factory) | `FeeReceived`, `FeeDistributed`, `CallerIncentivePaid`, `CreatorClaimed`, `ConfigQueued`, `ConfigApplied`, `ConfigCancelled`, `AdminChanged` |
-| BuybackExecutor | `BuybackExecuted` |
+| BuybackExecutor | `BuybackExecuted`, `BuybackRedirectedToRewards` |
 | HolderRewards (per token, via factory) | `Staked`, `Unstaked`, `RewardClaimed` |
 | CTOManager | `CTORequested`, `CTOApproved`, `CTOExecuted`, `CTOCancelled` |
 | PlatformTreasury | `PlatformFeeReceived`, `WithdrawQueued`, `WithdrawExecuted`, `WithdrawCancelled` |
-| Pons V2 (placeholder ABI) | `Graduated`, `Trade` |
+| Pons V2 factory | `PoolGraduated` |
+| Pons V2 curve (per token, via factory on `TokenRegistered.curve`) | `CurveBuy`, `CurveSell` |
 
 Tables are in `ponder.schema.ts`: `token`, `platform_stats`, `fee_distribution`, `buyback`, `config_change`,
 `stake_position`, `cto_request`, `treasury_withdrawal`, `trade`, `activity` (unified feed).
@@ -58,11 +59,9 @@ All amounts are wei as decimal strings; timestamps are unix seconds; addresses a
 | `GET /api/cto?status=` | CTO | CTO requests |
 | `/graphql`, `/sql/*` | – | Ponder's generic GraphQL and SQL client endpoints |
 
-## Known gaps (Pons V2 placeholder)
+## Notes
 
-- `Trade` is a placeholder event. 24h volume, trending, the price chart, last price and market cap
-  (`lastPriceWei` × `totalSupply`, read on each trade) depend on it; swap in the real Pons V2 trade
-  event(s) in stage 4.
-- Curve progress (`curveProgressBps`, used by the "Hampir Lulus" tab) comes from a placeholder Pons V2 view,
-  refreshed on each trade.
+- Price is read from the curve on each trade (`quoteReserve / tokenReserve`); market cap is price ×
+  `totalSupply`. Curve progress is `realQuoteReserve / graduationThreshold`.
+- Trades after graduation (Uniswap V4) are not indexed yet.
 - 24h windows use the server clock.
