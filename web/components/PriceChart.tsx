@@ -1,14 +1,66 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useEthUsd } from "@/lib/price";
 import type { Trade } from "@/lib/types";
-import { Empty } from "./ui";
+import { cn, Empty } from "./ui";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumSignificantDigits: 4 });
+const UNIT_KEY = "pontoon:price-unit";
+type Unit = "USD" | "ETH";
 
-/** Price line (ETH per token) from indexed trades, with a hover crosshair. */
+/** Viewer's price unit (USD by default), remembered in this browser. */
+function usePriceUnit(): [Unit, (u: Unit) => void] {
+  const [unit, setUnit] = useState<Unit>("USD");
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        if (localStorage.getItem(UNIT_KEY) === "ETH") setUnit("ETH");
+      } catch {
+        // storage unavailable
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
+  const choose = (u: Unit) => {
+    setUnit(u);
+    try {
+      localStorage.setItem(UNIT_KEY, u);
+    } catch {
+      // storage unavailable
+    }
+  };
+  return [unit, choose];
+}
+
+function UnitToggle({ unit, onChange }: { unit: Unit; onChange: (u: Unit) => void }) {
+  return (
+    <div role="group" aria-label="Price unit" className="ml-auto inline-flex rounded-lg border border-line bg-bg/40 p-0.5 text-xs">
+      {(["USD", "ETH"] as const).map((u) => (
+        <button
+          key={u}
+          type="button"
+          aria-pressed={unit === u}
+          onClick={() => onChange(u)}
+          className={cn(
+            "rounded-md px-2 py-0.5 font-semibold transition-colors",
+            unit === u ? "bg-surface-2 text-ink" : "text-muted hover:text-ink",
+          )}
+        >
+          {u}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Price line per token from indexed trades, in USD or ETH (viewer's choice), with a hover crosshair. */
 export function PriceChart({ trades }: { trades: Trade[] }) {
   const [hover, setHover] = useState<number | null>(null);
+  const [unit, setUnit] = usePriceUnit();
+  const ethUsd = useEthUsd();
+  const show = (ethPrice: number) =>
+    unit === "ETH" ? `${fmt(ethPrice)} ETH` : ethUsd ? `$${fmt(ethPrice * ethUsd)}` : "$—";
   const points = useMemo(
     () =>
       trades
@@ -50,7 +102,7 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-baseline gap-3">
-        <span className="tabular font-display text-3xl font-semibold">{fmt(h ? h.price : last)} ETH</span>
+        <span className="tabular font-display text-3xl font-semibold">{show(h ? h.price : last)}</span>
         {h ? (
           <span className="text-sm text-muted">{new Date(h.ts * 1000).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</span>
         ) : (
@@ -61,6 +113,7 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
           </span>
         )}
         <span className="text-xs text-muted">per token · {points.length} trades</span>
+        <UnitToggle unit={unit} onChange={setUnit} />
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}

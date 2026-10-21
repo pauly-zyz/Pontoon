@@ -26,6 +26,11 @@ How Pontoon plugs in:
 - `BuybackExecutor` buys on the curve and sends tokens to `0x…dEaD`. After graduation (Uniswap V4) the
   pending ETH can be sent to the token's stakers with `redirectToRewards()`.
 - Only ETH pairs are enabled.
+- The Pons fee harvester only sweeps a curve once roughly 0.0035 ETH of fees has accrued (about 0.0925 ETH
+  of trading volume, measured by `test/fork/PonsHarvestMin.fork.t.sol`). Below that, `distribute()`
+  reverts with `NothingToDistribute` and the fees simply wait in the curve.
+
+Mainnet smoke test with a throwaway Pontoon deployment: `script/MainnetSmoke.s.sol`.
 
 ## Commands
 
