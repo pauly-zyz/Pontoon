@@ -21,7 +21,8 @@ const PARAM_ROWS: [string, string, string][] = [
 ];
 
 const RISKS = [
-  "The contracts have not been audited yet. Only use what you can afford to lose during testing.",
+  "The contracts have not been audited by an independent firm yet; they had an internal review (below). Only use what you can afford to lose.",
+  "Rewards go to whoever is staked when fees are distributed, so someone can stake just before a distribution and leave right after.",
   "The Pons V2 bonding-curve contracts are not verified on the explorer; Pontoon's integration was tested against them on a mainnet fork.",
   "Buybacks can suffer slippage or sandwiching. minOut is mandatory and each execution is capped, but the risk does not go away.",
   "Rewards only go to stakers. Unstaked tokens (including those in liquidity pools) earn no ETH.",
@@ -129,6 +130,18 @@ export default function DocsPage() {
             <li key={r}>{r}</li>
           ))}
         </ul>
+        <p className="mt-4 text-sm text-muted">
+          Contracts are verified on Blockscout and owned by a 2-of-3 Safe multisig. Read the{" "}
+          <a
+            href="https://github.com/pauly-zyz/Pontoon/blob/main/SECURITY_REVIEW.md"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            internal security review
+          </a>{" "}
+          (not an audit).
+        </p>
       </Card>
     </div>
   );
